@@ -24,3 +24,5 @@ dandi download DANDI:000059/0.230907.2101
 mv sub-MS22_ses-Peter-MS22-180629-110319-concat_desc-processed_behavior+ecephys.nwb spyglass-paper/data/nwb/raw/MS2220180629.nwb/MS2220180629.nwb # rename the file
 
 ```
+
+The j1620210710 data will be available on DANDI soon.
