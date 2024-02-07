@@ -40,3 +40,4 @@ dependencies:
       - "black[jupyter]"
       - spyglass-neuro
       - "dandi>=0.13.0"
+      - . --no-deps # install the current directory as a package

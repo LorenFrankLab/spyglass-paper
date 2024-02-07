@@ -13,7 +13,6 @@ Paper-specific code supporting:
 cd spyglass-paper
 conda env create -f environment.yml
 conda activate spyglass-paper
-pip install --editable . --no-deps
 ```
 
 ### Data
