@@ -5,34 +5,23 @@ Paper-specific code supporting:
 
 ### Installation
 
-```bash
-pip install spyglass-paper
-```
-
-Or
-
-```bash
-conda install -c franklab spyglass-paper
-```
-
-Or
-
-```bash
-git clone https://github.com/edeno/spyglass-paper.git
-pip install .
-```
-
-### Usage
-
-### Developer Installation
-
-1. Install miniconda (or anaconda) if it isn't already installed.
+1. Install miniconda (or mamba) if it isn't already installed.
 2. git clone <https://github.com/edeno/spyglass-paper.git>
-2. Setup editiable package with dependencies
+3. Setup editiable package with dependencies
 
 ```bash
 cd spyglass-paper
 conda env create -f environment.yml
 conda activate spyglass-paper
 pip install --editable . --no-deps
+```
+
+### Data
+
+For the MS2220180629 data <https://doi.org/10.48324/dandi.000059/0.230907.2101>, you can download the data from DANDI using the following command:
+
+```bash
+dandi download DANDI:000059/0.230907.2101
+mv sub-MS22_ses-Peter-MS22-180629-110319-concat_desc-processed_behavior+ecephys.nwb spyglass-paper/data/nwb/raw/MS2220180629.nwb/MS2220180629.nwb # rename the file
+
 ```

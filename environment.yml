@@ -39,3 +39,4 @@ dependencies:
       - click
       - "black[jupyter]"
       - spyglass-neuro
+      - "dandi>=0.13.0"
