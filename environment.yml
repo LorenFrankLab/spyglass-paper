@@ -1,18 +1,41 @@
-name: package_template
+name: spyglass-paper
 channels:
-- defaults
-- conda-forge
+  - conda-forge
+  - franklab
+  - edeno
 dependencies:
-- "python>=3.8"
-- numpy
-- scipy
-- scikit-learn
-- matplotlib
-- pandas
-- jupyterlab
-- pytest
-- pytest-cov
-- coveralls
-- autopep8
-- black
-- isort
+  - python>=3.9,<3.10
+  - jupyterlab>=3.*,<4 # leave at v3 to support jupyterlab-git
+  - jupyter_contrib_nbextensions==0.5.1
+  - jupyterlab-git
+  - nbgitpuller=1.1.*
+  - pydotplus
+  - dask
+  - pip
+  - position_tools
+  - numpy<1.24
+  - track_linearization>=2.3
+  - ripple_detection
+  - non_local_detector
+  - matplotlib
+  - seaborn
+  - bottleneck
+  - ipympl
+  - tqdm
+  - spectral_connectivity
+  - pyfftw<=0.12.0  # used by ghostipy. install from conda-forge so that it works on Mac ARM processors
+  - pip
+  - pip:
+      - pubnub<6.4.0
+      - spikeinterface>=0.98.2,<0.99
+      - pynwb>=2.2.0,<3
+      - hdmf>=3.4.6
+      - datajoint>=0.13.6
+      - ghostipy
+      - pymysql
+      - sortingview>=0.11
+      - git+https://github.com/LorenFrankLab/ndx-franklab-novela.git
+      - pyyaml
+      - click
+      - "black[jupyter]"
+      - spyglass-neuro

@@ -3,7 +3,7 @@ requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
-name = "repository_name"
+name = "spyglass-paper"
 description = ""
 readme = "README.md"
 requires-python = ">=3.8"
@@ -15,19 +15,16 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "numpy",
-    "scipy",
-    "pandas",
-    "xarray",
-    "scikit-learn",
-    "matplotlib",
+    "spyglass-neuro",
+    "spectral_connectivity",
     "seaborn",
+    "matplotlib",
 ]
 dynamic = ["version"]
 
 [project.urls]
-"Homepage" = "https://github.com/edeno/repository_name"
-"Bug Tracker" = "https://github.com/edeno/repository_name/issues"
+"Homepage" = "https://github.com/edeno/spyglass-paper"
+"Bug Tracker" = "https://github.com/edeno/spyglass-paper/issues"
 
 [project.optional-dependencies]
 test = ["black", "pytest", "pytest-cov"]
@@ -36,10 +33,10 @@ test = ["black", "pytest", "pytest-cov"]
 source = "vcs"
 
 [tool.hatch.build.hooks.vcs]
-version-file = "src/repository_name/_version.py"
+version-file = "src/spyglass-paper/_version.py"
 
 [tool.hatch.build.targets.sdist]
 exclude = [".git_archival.txt"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/repository_name"]
+packages = ["src/spyglass-paper"]

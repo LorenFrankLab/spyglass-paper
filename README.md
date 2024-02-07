@@ -1,29 +1,37 @@
-# Package Name
+# Spyglass-paper
+
 Add package description
 
 ### Installation
+
 ```bash
-pip install package_name
+pip install spyglass-paper
 ```
+
 Or
+
 ```bash
-conda install -c edeno package_name
+conda install -c franklab spyglass-paper
 ```
+
 Or
+
 ```bash
-git clone <package.git>
+git clone https://github.com/edeno/spyglass-paper.git
 pip install .
 ```
 
 ### Usage
 
 ### Developer Installation
+
 1. Install miniconda (or anaconda) if it isn't already installed.
-2. git clone <package.git>
+2. git clone <https://github.com/edeno/spyglass-paper.git>
 2. Setup editiable package with dependencies
+
 ```bash
-cd <package folder>
+cd <spyglass-paperr>
 conda env create -f environment.yml
-conda activate package_name
+conda activate spyglass-paper
 pip install --editable . --no-deps
 ```
