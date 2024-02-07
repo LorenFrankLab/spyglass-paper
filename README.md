@@ -30,7 +30,7 @@ pip install .
 2. Setup editiable package with dependencies
 
 ```bash
-cd <spyglass-paperr>
+cd <spyglass-paper>
 conda env create -f environment.yml
 conda activate spyglass-paper
 pip install --editable . --no-deps
