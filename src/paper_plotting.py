@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 import sortingview.views as vv
-import sortingview.views.franklab as vvf
 from non_local_detector.analysis import (
     get_ahead_behind_distance,
     get_trajectory_data,
@@ -15,7 +14,7 @@ from non_local_detector.visualization.figurl_1D import create_1D_decode_view
 MM_TO_INCHES = 1.0 / 25.4
 
 ONE_AND_HALF_COLUMN = 140.0 * MM_TO_INCHES
-TWO_COLUMN = 160.0 * MM_TO_INCHES
+TWO_COLUMN = 178.0 * MM_TO_INCHES
 ONE_COLUMN = TWO_COLUMN / 2.0
 PAGE_HEIGHT = 247.0 * MM_TO_INCHES
 GOLDEN_RATIO = (np.sqrt(5) - 1.0) / 2.0
@@ -201,7 +200,7 @@ def plot_2D_track_graph(
     edge_order=None,
     reward_well_nodes=None,
     edge_colors=None,
-    figsize=(ONE_COLUMN * 0.6, ONE_COLUMN * 0.6),
+    figsize=(TWO_COLUMN / 3 * 0.6, TWO_COLUMN / 3 * 0.6),
     position_names=("position_x", "position_y"),
 ):
     if reward_well_nodes is None:
@@ -287,7 +286,7 @@ def plot_decode(
     fig, axes = plt.subplots(
         4,
         1,
-        figsize=(ONE_COLUMN, PAGE_HEIGHT * 0.5),
+        figsize=(TWO_COLUMN / 3, PAGE_HEIGHT * 0.5),
         height_ratios=[4, 1, 1, 1],
         sharex=True,
         constrained_layout=True,
@@ -370,15 +369,6 @@ def plot_decode(
         ha="left",
         va="bottom",
     )
-
-    # # State Probabilities
-    # axes[1].plot(
-    #     results.isel(time=time_slice_ind).time.values,
-    #     results.isel(
-    #         time=time_slice_ind,
-    #     ).acausal_state_probabilities.values,
-    # )
-    # axes[1].set_ylabel("State\nProb.")
 
     # Speed
     axes[2].fill_between(
