@@ -350,10 +350,10 @@ def plot_decode(
     )
     axes[1].axhline(0.0, color="magenta", linestyle="--")
     axes[1].set_ylabel("Dist. [cm]")
-    axes[1].set_ylim((-50, 50))
+    axes[1].set_ylim((-30, 30))
     axes[1].text(
         results.isel(time=time_slice_ind).time.values[0],
-        50.0,
+        30.0,
         "Ahead",
         color="grey",
         fontsize=8,
@@ -362,7 +362,7 @@ def plot_decode(
     )
     axes[1].text(
         results.isel(time=time_slice_ind).time.values[0],
-        -50.0,
+        -30.0,
         "Behind",
         color="grey",
         fontsize=8,
