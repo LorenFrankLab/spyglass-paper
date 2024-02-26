@@ -13,7 +13,6 @@ dependencies:
   - dask
   - pip
   - position_tools
-  - numpy<1.24
   - track_linearization>=2.3
   - ripple_detection
   - non_local_detector
