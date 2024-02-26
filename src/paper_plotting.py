@@ -1,6 +1,6 @@
-import matplotlib.cm as cm
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
+import matplotlib
 import numpy as np
 import seaborn as sns
 import sortingview.views as vv
@@ -85,7 +85,7 @@ def plot_graph_as_1D(
     if reward_well_nodes is None:
         reward_well_nodes = []
     if edge_colors is None:
-        edge_colors = np.array(cm.get_cmap("tab10").colors)
+        edge_colors = np.array(matplotlib.colormaps.get_cmap("tab10").colors)
 
     n_edges = len(edge_order)
     if isinstance(edge_spacing, int) | isinstance(edge_spacing, float):
@@ -206,7 +206,7 @@ def plot_2D_track_graph(
     if reward_well_nodes is None:
         reward_well_nodes = []
     if edge_colors is None:
-        edge_colors = np.array(cm.get_cmap("tab10").colors)
+        edge_colors = np.array(matplotlib.colormaps.get_cmap("tab10").colors)
     if edge_order is None:
         edge_order = np.asarray(track_graph.edges)
 
@@ -268,7 +268,7 @@ def plot_decode(
         linear_position_info.columns.isin(["speed", "head_speed"])
     ][0]
     if edge_colors is None:
-        edge_colors = np.array(cm.get_cmap("tab10").colors)
+        edge_colors = np.array(matplotlib.colormaps.get_cmap("tab10").colors)
 
     n_edges = len(edge_order)
     if isinstance(edge_spacing, int) | isinstance(edge_spacing, float):
