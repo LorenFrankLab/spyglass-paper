@@ -416,7 +416,7 @@ def create_figure():
 
     # Figure dimensions (from design spec)
     fig_width = 7.0  # Two-column width
-    fig_height = 7.0  # Increased to accommodate table reference
+    fig_height = 8.5  # Increased to accommodate table reference
 
     fig, axes = plt.subplot_mosaic(
         [["A", "B"]],
@@ -445,7 +445,7 @@ def create_figure():
     # We have 8 rows: nwb, input, output1, features, group, decoding, decode_out, figure
     n_rows = 8
     y_top = 0.86  # Center of first box (leave room for title above)
-    y_bottom = 0.08  # Center of last box
+    y_bottom = 0.22  # Center of last box (leave room for legend + table reference below)
     total_height = y_top - y_bottom
 
     # We want: row_spacing = box_height + gap_between_boxes
@@ -1002,7 +1002,7 @@ def create_figure():
         ncol=5,
         fontsize=6,
         frameon=False,
-        bbox_to_anchor=(0.5, -0.02),
+        bbox_to_anchor=(0.5, 0.14),
         handlelength=2,
         handleheight=1.5,
     )
@@ -1011,7 +1011,7 @@ def create_figure():
     # TABLE REFERENCE
     # ==========================================================================
     # Add table reference below the legend
-    table_ref_y = -0.04  # Y position for table reference title
+    table_ref_y = 0.12  # Y position for table reference title
 
     # Table reference title
     fig.text(
