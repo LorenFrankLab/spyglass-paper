@@ -1,0 +1,130 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the paper below."
+title: "Spyglass Paper Code"
+type: software
+authors:
+  - family-names: Lee
+    given-names: Kyu Hyun
+  - family-names: Denovellis
+    given-names: Eric L.
+  - family-names: Ly
+    given-names: Ryan
+  - family-names: Magland
+    given-names: Jeremy
+  - family-names: Soules
+    given-names: Jeff
+  - family-names: Comrie
+    given-names: Alison E.
+  - family-names: Gramling
+    given-names: Daniel P.
+  - family-names: Guidera
+    given-names: Jennifer A.
+  - family-names: Nevers
+    given-names: Rhino
+  - family-names: Adenekan
+    given-names: Philip
+  - family-names: Brozdowski
+    given-names: Chris
+  - family-names: Bray
+    given-names: Samuel
+  - family-names: Monroe
+    given-names: Emily
+  - family-names: Bak
+    given-names: Ji Hyun
+  - family-names: Coulter
+    given-names: Michael E.
+  - family-names: Sun
+    given-names: Xulu
+  - family-names: Broyles
+    given-names: Elissa
+  - family-names: Shin
+    given-names: Donghoon
+  - family-names: Chiang
+    given-names: Sharon
+  - family-names: Holobetz
+    given-names: Cristofer
+  - family-names: Tritt
+    given-names: Andrew
+  - family-names: Rübel
+    given-names: Oliver
+  - family-names: Nguyen
+    given-names: Thinh
+  - family-names: Yatsenko
+    given-names: Dimitri
+  - family-names: Chu
+    given-names: Joshua
+  - family-names: Kemere
+    given-names: Caleb
+  - family-names: Garcia
+    given-names: Samuel
+  - family-names: Buccino
+    given-names: Alessio
+  - family-names: Frank
+    given-names: Loren M.
+repository-code: "https://github.com/edeno/spyglass-paper"
+license: MIT
+preferred-citation:
+  type: article
+  title: "Spyglass: a data analysis framework for reproducible and shareable neuroscience research"
+  authors:
+    - family-names: Lee
+      given-names: Kyu Hyun
+    - family-names: Denovellis
+      given-names: Eric L.
+    - family-names: Ly
+      given-names: Ryan
+    - family-names: Magland
+      given-names: Jeremy
+    - family-names: Soules
+      given-names: Jeff
+    - family-names: Comrie
+      given-names: Alison E.
+    - family-names: Gramling
+      given-names: Daniel P.
+    - family-names: Guidera
+      given-names: Jennifer A.
+    - family-names: Nevers
+      given-names: Rhino
+    - family-names: Adenekan
+      given-names: Philip
+    - family-names: Brozdowski
+      given-names: Chris
+    - family-names: Bray
+      given-names: Samuel
+    - family-names: Monroe
+      given-names: Emily
+    - family-names: Bak
+      given-names: Ji Hyun
+    - family-names: Coulter
+      given-names: Michael E.
+    - family-names: Sun
+      given-names: Xulu
+    - family-names: Broyles
+      given-names: Elissa
+    - family-names: Shin
+      given-names: Donghoon
+    - family-names: Chiang
+      given-names: Sharon
+    - family-names: Holobetz
+      given-names: Cristofer
+    - family-names: Tritt
+      given-names: Andrew
+    - family-names: Rübel
+      given-names: Oliver
+    - family-names: Nguyen
+      given-names: Thinh
+    - family-names: Yatsenko
+      given-names: Dimitri
+    - family-names: Chu
+      given-names: Joshua
+    - family-names: Kemere
+      given-names: Caleb
+    - family-names: Garcia
+      given-names: Samuel
+    - family-names: Buccino
+      given-names: Alessio
+    - family-names: Frank
+      given-names: Loren M.
+  journal: "bioRxiv"
+  year: 2024
+  doi: "10.1101/2024.01.25.577295"

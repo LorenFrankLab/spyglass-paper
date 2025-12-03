@@ -78,7 +78,7 @@ jobs:
       - name: Install test extras
         run: pip install spyglass-paper[test]
       - name: Run tests
-        run: pytest --doctest-modules -v --pyargs non_local_detector
+        run: pytest --doctest-modules -v --pyargs src
   publish:
     runs-on: ubuntu-latest
     needs: [test-package]

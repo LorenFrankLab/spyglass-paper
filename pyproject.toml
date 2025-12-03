@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "spyglass-paper"
-description = ""
+description = "Code for reproducing figures from the Spyglass neuroscience data analysis framework paper"
 readme = "README.md"
 requires-python = ">=3.8"
 license = { file = "LICENSE" }
