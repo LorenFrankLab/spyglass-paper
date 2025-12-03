@@ -12,42 +12,17 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
 # Add src to path for paper_plotting imports
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
-from paper_plotting import save_figure
+from paper_plotting import save_figure, set_figure_defaults
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.figure import Figure
-
-
-# =============================================================================
-# FIGURE UTILITIES
-# =============================================================================
-def set_figure_defaults_supp() -> None:
-    """
-    Set matplotlib defaults for supplemental flowchart figure.
-
-    This uses a slightly different style than the main figures (no seaborn,
-    white background for the flowchart).
-    """
-    rc_params = {
-        "font.family": "sans-serif",
-        "pdf.fonttype": 42,
-        "ps.fonttype": 42,
-        "axes.labelcolor": "#222222",
-        "text.color": "#222222",
-        "figure.facecolor": "white",
-        "axes.linewidth": 0.8,
-        "savefig.dpi": 300,
-        "savefig.transparent": False,
-    }
-    mpl.rcParams.update(rc_params)
 
 
 # =============================================================================
@@ -1186,7 +1161,7 @@ def create_figure(layout: LayoutConfig | None = None) -> Figure:
     if layout is None:
         layout = DEFAULT_LAYOUT
 
-    set_figure_defaults_supp()
+    set_figure_defaults()
 
     fig, axes = _setup_figure(layout)
     y_positions = layout.get_y_positions()
