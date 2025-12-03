@@ -27,16 +27,16 @@ dynamic = ["version"]
 "Bug Tracker" = "https://github.com/edeno/spyglass-paper/issues"
 
 [project.optional-dependencies]
-test = ["black", "pytest", "pytest-cov"]
+test = ["black", "pytest", "pytest-cov", "networkx", "pandas"]
 
 [tool.hatch.version]
 source = "vcs"
 
 [tool.hatch.build.hooks.vcs]
-version-file = "src/spyglass-paper/_version.py"
+version-file = "src/_version.py"
 
 [tool.hatch.build.targets.sdist]
 exclude = [".git_archival.txt"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/spyglass-paper"]
+packages = ["src"]
