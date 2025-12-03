@@ -2,67 +2,75 @@
 Supplemental Figure: Spyglass Neural Decoding Workflow
 
 Generates a publication-ready flowchart showing the two decoding pipelines
-used in Figure 5: clusterless decoding (Frank Lab) and sorted spikes decoding
-(Buzsaki Lab).
-
-Design follows paper style specifications from FIGURE5_SUPP.md.
+used in Figure 5: clusterless decoding (UCSF) and sorted spikes decoding (NYU).
 """
 
+from __future__ import annotations
+
 import os
-import sys
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
-# Add skill scripts to path
-skill_paths = [
-    os.path.expanduser("~/.claude/skills/scientific-figures-paper/scripts"),
-    "/mnt/skills/user/scientific-figures-paper/scripts",
-    "/mnt/skills/scientific-figures-paper/scripts",
-]
-
-for path in skill_paths:
-    if os.path.exists(path) and path not in sys.path:
-        sys.path.insert(0, path)
-        break
-
+import matplotlib as mpl
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
-import numpy as np
+from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
-# Try to import from skill, fallback to inline definitions
-try:
-    from figure_utilities import set_figure_defaults, save_figure
-except ImportError:
-    import matplotlib as mpl
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
+    from matplotlib.figure import Figure
 
-    def set_figure_defaults(context="paper"):
-        rc_params = {
-            "font.family": "sans-serif",
-            "pdf.fonttype": 42,
-            "ps.fonttype": 42,
-            "axes.labelcolor": "#222222",
-            "text.color": "#222222",
-            "figure.facecolor": "white",
-            "axes.linewidth": 0.8,
-            "savefig.dpi": 300,
-            "savefig.transparent": False,
-        }
-        mpl.rcParams.update(rc_params)
 
-    def save_figure(figure_name, output_dir=None):
-        if output_dir is None:
-            output_dir = "."
-        os.makedirs(output_dir, exist_ok=True)
-        pdf_path = os.path.join(output_dir, f"{figure_name}.pdf")
-        png_path = os.path.join(output_dir, f"{figure_name}.png")
-        plt.savefig(pdf_path, dpi=300, bbox_inches="tight", transparent=False)
-        plt.savefig(png_path, dpi=300, bbox_inches="tight", transparent=False)
-        print(f"Saved: {pdf_path} and {png_path}")
+# =============================================================================
+# FIGURE UTILITIES (standalone - no external dependencies)
+# =============================================================================
+def set_figure_defaults() -> None:
+    """Set matplotlib defaults for publication-quality figures."""
+    rc_params = {
+        "font.family": "sans-serif",
+        "pdf.fonttype": 42,
+        "ps.fonttype": 42,
+        "axes.labelcolor": "#222222",
+        "text.color": "#222222",
+        "figure.facecolor": "white",
+        "axes.linewidth": 0.8,
+        "savefig.dpi": 300,
+        "savefig.transparent": False,
+    }
+    mpl.rcParams.update(rc_params)
+
+
+def save_figure(figure_name: str, output_dir: str | None = None) -> None:
+    """
+    Save the current matplotlib figure as both PDF and PNG.
+
+    Parameters
+    ----------
+    figure_name : str
+        Base name for the output files (without extension).
+    output_dir : str, optional
+        Directory to save files to. Creates directory if it doesn't exist.
+        Defaults to current working directory.
+
+    Notes
+    -----
+    Files are saved at 300 DPI with tight bounding boxes.
+    """
+    if output_dir is None:
+        output_dir = "."
+    os.makedirs(output_dir, exist_ok=True)
+    pdf_path = os.path.join(output_dir, f"{figure_name}.pdf")
+    png_path = os.path.join(output_dir, f"{figure_name}.png")
+    plt.savefig(pdf_path, dpi=300, bbox_inches="tight", transparent=False)
+    plt.savefig(png_path, dpi=300, bbox_inches="tight", transparent=False)
+    print(f"Saved: {pdf_path} and {png_path}")
 
 
 # =============================================================================
 # COLOR PALETTE (from FIGURE5_SUPP.md design specifications)
 # =============================================================================
-COLORS = {
+#: Color palette for figure elements following FIGURE5_SUPP.md design specs.
+#: Keys correspond to pipeline components and UI elements.
+COLORS: dict[str, str] = {
     "position": "#1f77b4",  # Blue - Position stream
     "neural_frank": "#ff7f0e",  # Orange - Neural stream (Frank Lab)
     "neural_buzsaki": "#2ca02c",  # Green - Neural stream (Buzsaki Lab)
@@ -82,12 +90,96 @@ FILL_ALPHA = 0.2
 # BOX GEOMETRY HELPERS
 # =============================================================================
 # Constants for box rendering
-BOX_PAD = 0.02  # FancyBboxPatch pad extends visual box by this amount on each side
+BOX_PAD = (
+    0.02  # FancyBboxPatch pad extends visual box by this amount on each side
+)
 MERGE_BOX_OUTER_OFFSET = 0.015  # Extra offset for merge table outer border
 ARROW_GAP = 0.004  # Small gap between arrow endpoint and box edge
 
 
-def get_box_bounds(y_center, height, is_merge=False):
+# =============================================================================
+# LAYOUT CONFIGURATION
+# =============================================================================
+@dataclass
+class LayoutConfig:
+    """Configuration for figure layout dimensions and positions."""
+
+    # Figure dimensions
+    fig_width: float = 7.0
+    fig_height: float = 8.5
+
+    # Vertical layout
+    y_top: float = 0.86
+    y_bottom: float = 0.22
+
+    # Horizontal positions
+    x_left: float = 0.30
+    x_right: float = 0.70
+    x_center: float = 0.50
+
+    # Box dimensions
+    box_width: float = 0.35
+    box_width_small: float = 0.30
+
+    # Table reference
+    table_ref_y: float = 0.12
+    ref_fontsize: float = 6
+    line_spacing: float = 0.022
+    col1_x: float = 0.08
+    col2_x: float = 0.55
+
+    # Derived layout values (computed from row spacing)
+    n_rows: int = field(default=8, init=False)
+
+    @property
+    def total_height(self) -> float:
+        """Total vertical space available for boxes."""
+        return self.y_top - self.y_bottom
+
+    @property
+    def row_spacing(self) -> float:
+        """Vertical spacing between box centers."""
+        return self.total_height / (self.n_rows - 1)
+
+    @property
+    def box_height(self) -> float:
+        """Standard box height (30% of row spacing for arrow visibility)."""
+        return self.row_spacing * 0.30
+
+    @property
+    def box_height_figure(self) -> float:
+        """Figure output box height (slightly smaller)."""
+        return self.box_height * 0.6
+
+    def get_y_positions(self) -> dict[str, float]:
+        """Calculate Y positions for each row (top to bottom)."""
+        return {
+            "nwb": self.y_top - 0 * self.row_spacing,
+            "input": self.y_top - 1 * self.row_spacing,
+            "output1": self.y_top - 2 * self.row_spacing,
+            "features": self.y_top - 3 * self.row_spacing,
+            "group": self.y_top - 4 * self.row_spacing,
+            "decoding": self.y_top - 5 * self.row_spacing,
+            "decode_out": self.y_top - 6 * self.row_spacing,
+            "figure": self.y_top - 7 * self.row_spacing,
+        }
+
+
+@dataclass
+class BoxBounds:
+    """Visual bounds of a box for arrow attachment."""
+
+    top: float
+    bottom: float
+
+
+# Default layout configuration
+DEFAULT_LAYOUT = LayoutConfig()
+
+
+def get_box_bounds(
+    y_center: float, height: float, is_merge: bool = False
+) -> BoxBounds:
     """
     Calculate the visual top and bottom bounds of a box for arrow attachment.
 
@@ -105,7 +197,8 @@ def get_box_bounds(y_center, height, is_merge=False):
 
     Returns
     -------
-    dict with keys 'top' and 'bottom' representing visual bounds for arrow attachment
+    BoxBounds
+        Visual bounds for arrow attachment with 'top' and 'bottom' attributes
     """
     # Geometric bounds
     geo_top = y_center + height / 2
@@ -120,14 +213,14 @@ def get_box_bounds(y_center, height, is_merge=False):
         visual_top += MERGE_BOX_OUTER_OFFSET
         visual_bottom -= MERGE_BOX_OUTER_OFFSET
 
-    return {"top": visual_top, "bottom": visual_bottom}
+    return BoxBounds(top=visual_top, bottom=visual_bottom)
 
 
 def draw_vertical_arrow_between_boxes(
-    ax,
+    ax: Axes,
     x: float,
-    src_bounds: dict,
-    dst_bounds: dict,
+    src_bounds: BoxBounds,
+    dst_bounds: BoxBounds,
     color: str | None = None,
 ) -> None:
     """
@@ -136,14 +229,14 @@ def draw_vertical_arrow_between_boxes(
 
     Parameters
     ----------
-    ax : matplotlib.axes.Axes
+    ax : Axes
         Axes to draw on.
     x : float
         X coordinate of the arrow.
-    src_bounds : dict
-        Bounds dict for the source box from get_box_bounds.
-    dst_bounds : dict
-        Bounds dict for the destination box from get_box_bounds.
+    src_bounds : BoxBounds
+        Bounds for the source box from get_box_bounds.
+    dst_bounds : BoxBounds
+        Bounds for the destination box from get_box_bounds.
     color : str, optional
         Arrow color. Defaults to COLORS["arrow"].
     """
@@ -152,8 +245,8 @@ def draw_vertical_arrow_between_boxes(
 
     # Leave ARROW_GAP below the source and above the destination
     # This creates symmetric spacing at both ends of the arrow
-    start_y = src_bounds["bottom"] - ARROW_GAP
-    end_y = dst_bounds["top"] + ARROW_GAP
+    start_y = src_bounds.bottom - ARROW_GAP
+    end_y = dst_bounds.top + ARROW_GAP
 
     arrow = FancyArrowPatch(
         (x, start_y),
@@ -172,40 +265,45 @@ def draw_vertical_arrow_between_boxes(
 # DRAWING HELPER FUNCTIONS
 # =============================================================================
 def draw_box(
-    ax,
-    x,
-    y,
-    width,
-    height,
-    text,
-    color,
-    is_merge=False,
-    is_dashed=False,
-    fontsize=7,
-    ref_num=None,
-):
+    ax: Axes,
+    x: float,
+    y: float,
+    width: float,
+    height: float,
+    text: str,
+    color: str,
+    is_merge: bool = False,
+    is_dashed: bool = False,
+    fontsize: int = 7,
+    ref_num: str | None = None,
+) -> None:
     """
     Draw a styled box with optional merge table double-line or dashed border.
 
     Parameters
     ----------
-    ax : matplotlib axes
-    x, y : float
-        Center coordinates of the box
-    width, height : float
-        Box dimensions
+    ax : Axes
+        Matplotlib axes to draw on.
+    x : float
+        X center coordinate of the box.
+    y : float
+        Y center coordinate of the box.
+    width : float
+        Box width.
+    height : float
+        Box height.
     text : str
-        Label text
+        Label text to display in the box.
     color : str
-        Box color (border and text)
+        Hex color string for box border and fill.
     is_merge : bool
-        If True, draw double-line border (merge table style)
+        If True, draw double-line border (merge table style).
     is_dashed : bool
-        If True, draw dashed border
+        If True, draw dashed border.
     fontsize : int
-        Font size for label text
+        Font size for label text.
     ref_num : str or None
-        Reference number to display (e.g., "[1]")
+        Reference number to display below text (e.g., "[1]").
     """
     # Calculate corner position
     x0 = x - width / 2
@@ -291,16 +389,25 @@ def draw_box(
         )
 
 
-def draw_arrow(ax, start, end, color=None):
+def draw_arrow(
+    ax: Axes,
+    start: tuple[float, float],
+    end: tuple[float, float],
+    color: str | None = None,
+) -> None:
     """
     Draw an arrow from start to end position.
 
     Parameters
     ----------
-    ax : matplotlib axes
-    start : tuple (x, y)
-    end : tuple (x, y)
+    ax : Axes
+        Matplotlib axes to draw on.
+    start : tuple[float, float]
+        Starting (x, y) coordinates.
+    end : tuple[float, float]
+        Ending (x, y) coordinates.
     color : str, optional
+        Arrow color. Defaults to COLORS["arrow"].
     """
     if color is None:
         color = COLORS["arrow"]
@@ -318,185 +425,90 @@ def draw_arrow(ax, start, end, color=None):
     ax.add_patch(arrow)
 
 
-def draw_vertical_arrow(ax, x, y_start, y_end, color=None):
-    """
-    Draw a vertical arrow from y_start to y_end at x position.
+# =============================================================================
+# PANEL CONFIGURATION
+# =============================================================================
+@dataclass
+class PanelConfig:
+    """Configuration for a single panel in the figure."""
 
-    The arrow head points in the direction of the flow (toward y_end).
-
-    Parameters
-    ----------
-    ax : matplotlib axes
-    x : float
-        X coordinate for the vertical arrow
-    y_start : float
-        Y coordinate where arrow begins (bottom of source box)
-    y_end : float
-        Y coordinate where arrow ends (top of target box)
-    color : str, optional
-    """
-    if color is None:
-        color = COLORS["arrow"]
-
-    draw_arrow(ax, (x, y_start), (x, y_end), color)
-
-
-def draw_split_arrow(ax, start, ends, color=None):
-    """
-    Draw arrows splitting from one point to multiple endpoints.
-
-    Parameters
-    ----------
-    ax : matplotlib axes
-    start : tuple (x, y)
-    ends : list of tuples [(x1, y1), (x2, y2), ...]
-    color : str, optional
-    """
-    if color is None:
-        color = COLORS["arrow"]
-
-    # Draw vertical line from start to split point
-    mid_y = (start[1] + max(e[1] for e in ends)) / 2
-    ax.plot(
-        [start[0], start[0]], [start[1], mid_y], color=color, linewidth=1, zorder=1
+    label: str
+    title: str
+    subtitle: str
+    dandi_id: str
+    neural_input_label: str
+    neural_input_color: str
+    neural_input_ref: str
+    features_label: str
+    features_ref: str
+    group_label: str
+    group_ref: str
+    decoding_label: str
+    decoding_ref: str
+    figure_output: str
+    has_waveform_group: bool = (
+        True  # Panel A has waveform group, Panel B doesn't
     )
 
-    # Draw horizontal line to span endpoints
-    min_x = min(e[0] for e in ends)
-    max_x = max(e[0] for e in ends)
-    ax.plot([min_x, max_x], [mid_y, mid_y], color=color, linewidth=1, zorder=1)
 
-    # Draw arrows to each endpoint
-    for end in ends:
-        ax.plot([end[0], end[0]], [mid_y, end[1] + 0.05], color=color, linewidth=1)
-        draw_arrow(ax, (end[0], end[1] + 0.05), end, color)
+# Pre-defined panel configurations
+PANEL_A_CONFIG = PanelConfig(
+    label="A",
+    title="UCSF Dataset",
+    subtitle="(Clusterless Decoding)",
+    dandi_id="DANDI:000937",
+    neural_input_label="Raw\n(ephys)",
+    neural_input_color="neural_frank",
+    neural_input_ref="[2]",
+    features_label="Waveform\nFeatures",
+    features_ref="[6]",
+    group_label="Waveform\nFeatures Group",
+    group_ref="[9]",
+    decoding_label="Clusterless\nDecoding",
+    decoding_ref="[10]",
+    figure_output="Figure 5A",
+    has_waveform_group=True,
+)
 
-
-def draw_merge_arrow(ax, starts, end, color=None):
-    """
-    Draw arrows merging from multiple points to one endpoint.
-
-    Parameters
-    ----------
-    ax : matplotlib axes
-    starts : list of tuples [(x1, y1), (x2, y2), ...]
-    end : tuple (x, y)
-    color : str, optional
-    """
-    if color is None:
-        color = COLORS["arrow"]
-
-    # Calculate merge point
-    mid_y = (min(s[1] for s in starts) + end[1]) / 2
-
-    # Draw from each start to horizontal line
-    for start in starts:
-        ax.plot(
-            [start[0], start[0]], [start[1], mid_y], color=color, linewidth=1, zorder=1
-        )
-
-    # Draw horizontal line
-    min_x = min(s[0] for s in starts)
-    max_x = max(s[0] for s in starts)
-    ax.plot([min_x, max_x], [mid_y, mid_y], color=color, linewidth=1, zorder=1)
-
-    # Draw to endpoint
-    mid_x = (min_x + max_x) / 2
-    ax.plot([mid_x, mid_x], [mid_y, end[1] + 0.05], color=color, linewidth=1, zorder=1)
-    draw_arrow(ax, (mid_x, end[1] + 0.05), end, color)
+PANEL_B_CONFIG = PanelConfig(
+    label="B",
+    title="NYU Dataset",
+    subtitle="(Sorted Spikes Decoding)",
+    dandi_id="DANDI:000059",
+    neural_input_label="Imported\nSpike Sorting",
+    neural_input_color="neural_buzsaki",
+    neural_input_ref="[3]",
+    features_label="Sorted Spikes\nGroup",
+    features_ref="[7]",
+    group_label="",  # Not used in Panel B
+    group_ref="",  # Not used in Panel B
+    decoding_label="Sorted Spikes\nDecoding",
+    decoding_ref="[11]",
+    figure_output="Figure 5B-D",
+    has_waveform_group=False,
+)
 
 
 # =============================================================================
-# MAIN FIGURE CREATION
+# PANEL DRAWING FUNCTIONS
 # =============================================================================
-def create_figure():
-    """Create the supplemental figure showing decoding workflows."""
+def _draw_panel_title(ax: Axes, title: str, subtitle: str) -> None:
+    """
+    Draw the title and subtitle for a panel.
 
-    set_figure_defaults(context="paper")
-
-    # Figure dimensions (from design spec)
-    fig_width = 7.0  # Two-column width
-    fig_height = 8.5  # Increased to accommodate table reference
-
-    fig, axes = plt.subplot_mosaic(
-        [["A", "B"]],
-        figsize=(fig_width, fig_height),
-        width_ratios=[1, 1],
-        dpi=300,
-        constrained_layout=True,
-    )
-
-    # Configure both panels
-    for ax_name in ["A", "B"]:
-        ax = axes[ax_name]
-        ax.set_xlim(0, 1)
-        ax.set_ylim(0, 1)
-        # Don't set aspect="equal" - let the flowchart fill available space
-        ax.axis("off")
-
-    # ==========================================================================
-    # SHARED BOX DIMENSIONS AND POSITIONS
-    # ==========================================================================
-    # Box dimensions
-    bw = 0.35  # Box width (large)
-    bw_small = 0.30  # Box width (small)
-
-    # Calculate layout based on available space
-    # We have 8 rows: nwb, input, output1, features, group, decoding, decode_out, figure
-    n_rows = 8
-    y_top = 0.86  # Center of first box (leave room for title above)
-    y_bottom = 0.22  # Center of last box (leave room for legend + table reference below)
-    total_height = y_top - y_bottom
-
-    # We want: row_spacing = box_height + gap_between_boxes
-    # With n_rows boxes: total_height = (n_rows - 1) * row_spacing
-    # So: row_spacing = total_height / (n_rows - 1)
-    row_spacing = total_height / (n_rows - 1)
-
-    # Set box height to leave enough gap for arrows
-    # Visual box height = bh + 2*BOX_PAD (due to FancyBboxPatch padding)
-    # Use 30% of row_spacing: more vertical space between boxes for arrows
-    bh = row_spacing * 0.30
-    bh_figure = bh * 0.6  # Figure output box slightly smaller than others
-
-    # Y positions (top to bottom) - these are box CENTER positions
-    y_nwb = y_top - 0 * row_spacing
-    y_input = y_top - 1 * row_spacing
-    y_output1 = y_top - 2 * row_spacing
-    y_features = y_top - 3 * row_spacing
-    y_group = y_top - 4 * row_spacing
-    y_decoding = y_top - 5 * row_spacing
-    y_decode_out = y_top - 6 * row_spacing
-    y_figure = y_top - 7 * row_spacing
-
-    # X positions
-    x_left = 0.30
-    x_right = 0.70
-    x_center = 0.50
-
-    # ==========================================================================
-    # PRECOMPUTE BOX BOUNDS FOR ALL ROWS
-    # ==========================================================================
-    # Each box type has its bounds calculated once
-    bounds_nwb = get_box_bounds(y_nwb, bh, is_merge=False)
-    bounds_input = get_box_bounds(y_input, bh, is_merge=False)
-    bounds_output1 = get_box_bounds(y_output1, bh, is_merge=True)
-    bounds_features = get_box_bounds(y_features, bh, is_merge=False)
-    bounds_group = get_box_bounds(y_group, bh, is_merge=False)
-    bounds_decoding = get_box_bounds(y_decoding, bh, is_merge=False)
-    bounds_decode_out = get_box_bounds(y_decode_out, bh, is_merge=True)
-    bounds_figure = get_box_bounds(y_figure, bh_figure, is_merge=False)
-
-    # ==========================================================================
-    # PANEL A: Frank Lab Dataset (Clusterless Decoding)
-    # ==========================================================================
-    ax = axes["A"]
-
-    # Panel title
+    Parameters
+    ----------
+    ax : Axes
+        Matplotlib axes to draw on.
+    title : str
+        Main title text (bold, larger font).
+    subtitle : str
+        Subtitle text (smaller font, below title).
+    """
     ax.text(
         0.5,
         0.98,
-        "UCSF Dataset",
+        title,
         ha="center",
         va="top",
         fontsize=9,
@@ -506,263 +518,253 @@ def create_figure():
     ax.text(
         0.5,
         0.94,
-        "(Clusterless Decoding)",
+        subtitle,
         ha="center",
         va="top",
         fontsize=7,
         color=COLORS["text"],
     )
 
-    # --- NWB File ---
-    draw_box(ax, x_center, y_nwb, bw, bh, "NWB File\nDANDI:000937", COLORS["nwb"])
 
-    # Split arrow from NWB to Position and Neural
-    # Line from NWB bottom down to a split point, then horizontal, then down to inputs
-    # Position split_y between NWB bottom and input top (respecting ARROW_GAP)
-    gap_between = bounds_nwb["bottom"] - bounds_input["top"]
-    split_y = bounds_nwb["bottom"] - gap_between / 3  # Split point 1/3 down from NWB
+def _draw_panel_label(ax: Axes, label: str) -> None:
+    """
+    Draw the panel label (A, B, etc.) in the top-left corner.
+
+    Parameters
+    ----------
+    ax : Axes
+        Matplotlib axes to draw on.
+    label : str
+        Panel label text (e.g., "A", "B").
+    """
+    ax.text(
+        0.02,
+        0.98,
+        label,
+        transform=ax.transAxes,
+        fontsize=9,
+        fontweight="bold",
+        va="top",
+    )
+
+
+def _draw_split_arrow(
+    ax: Axes,
+    bounds_src: BoxBounds,
+    bounds_dst: BoxBounds,
+    x_center: float,
+    x_left: float,
+    x_right: float,
+) -> tuple[float, float]:
+    """
+    Draw a split arrow from one source box to two destination boxes.
+
+    Draws a vertical line from source, horizontal line to span destinations,
+    then arrows down to each destination box.
+
+    Parameters
+    ----------
+    ax : Axes
+        Matplotlib axes to draw on.
+    bounds_src : BoxBounds
+        Visual bounds of the source box.
+    bounds_dst : BoxBounds
+        Visual bounds of the destination boxes (assumes same row).
+    x_center : float
+        X coordinate of the source box center.
+    x_left : float
+        X coordinate of the left destination box center.
+    x_right : float
+        X coordinate of the right destination box center.
+
+    Returns
+    -------
+    tuple[float, float]
+        The (split_y, end_y) positions for potential reuse.
+    """
+    gap_between = bounds_src.bottom - bounds_dst.top
+    split_y = bounds_src.bottom - gap_between / 3
+
+    # Vertical line from source to split point
     ax.plot(
         [x_center, x_center],
-        [bounds_nwb["bottom"] - ARROW_GAP, split_y],
+        [bounds_src.bottom - ARROW_GAP, split_y],
         color=COLORS["arrow"],
         linewidth=1,
     )
-    # Horizontal line connecting left and right branches
+    # Horizontal line connecting branches
     ax.plot(
         [x_left, x_right],
         [split_y, split_y],
         color=COLORS["arrow"],
         linewidth=1,
     )
-    # Arrows down to input boxes (with gap above destination)
-    end_y = bounds_input["top"] + ARROW_GAP
+    # Arrows to destination boxes
+    end_y = bounds_dst.top + ARROW_GAP
     draw_arrow(ax, (x_left, split_y), (x_left, end_y))
     draw_arrow(ax, (x_right, split_y), (x_right, end_y))
 
-    # --- Input layer ---
-    draw_box(
-        ax,
-        x_left,
-        y_input,
-        bw_small,
-        bh,
-        "Raw\nPosition",
-        COLORS["position"],
-        ref_num="[1]",
-    )
-    draw_box(
-        ax,
-        x_right,
-        y_input,
-        bw_small,
-        bh,
-        "Raw\n(ephys)",
-        COLORS["neural_frank"],
-        ref_num="[2]",
-    )
+    return split_y, end_y
 
-    # Arrows to output layer
-    draw_vertical_arrow_between_boxes(ax, x_left, bounds_input, bounds_output1)
-    draw_vertical_arrow_between_boxes(ax, x_right, bounds_input, bounds_output1)
 
-    # --- Output merge tables ---
-    draw_box(
-        ax,
-        x_left,
-        y_output1,
-        bw_small,
-        bh,
-        "Position\nOutput",
-        COLORS["merge"],
-        is_merge=True,
-        ref_num="[4]",
-    )
-    draw_box(
-        ax,
-        x_right,
-        y_output1,
-        bw_small,
-        bh,
-        "Spike Sorting\nOutput",
-        COLORS["merge"],
-        is_merge=True,
-        ref_num="[5]",
-    )
+def _draw_merge_arrow(
+    ax: Axes,
+    bounds_left: BoxBounds,
+    bounds_right: BoxBounds,
+    bounds_dst: BoxBounds,
+    x_left: float,
+    x_right: float,
+    x_center: float,
+) -> None:
+    """
+    Draw arrows that merge from two source boxes to one destination box.
 
-    # Arrow from Spike Sorting Output to Waveform Features
-    draw_vertical_arrow_between_boxes(ax, x_right, bounds_output1, bounds_features)
+    Draws vertical lines from each source to a merge point, horizontal line
+    connecting them, then a single arrow down to the destination.
 
-    # --- Waveform features ---
-    draw_box(
-        ax,
-        x_right,
-        y_features,
-        bw_small,
-        bh,
-        "Waveform\nFeatures",
-        COLORS["neural_frank"],
-        ref_num="[6]",
-    )
+    Parameters
+    ----------
+    ax : Axes
+        Matplotlib axes to draw on.
+    bounds_left : BoxBounds
+        Visual bounds of the left source box.
+    bounds_right : BoxBounds
+        Visual bounds of the right source box.
+    bounds_dst : BoxBounds
+        Visual bounds of the destination box.
+    x_left : float
+        X coordinate of the left source box center.
+    x_right : float
+        X coordinate of the right source box center.
+    x_center : float
+        X coordinate of the destination box center.
+    """
+    gap_to_dst = bounds_left.bottom - bounds_dst.top
+    merge_y = bounds_left.bottom - gap_to_dst / 3
 
-    # Arrow from Position Output to Position Group (skips features row)
-    draw_vertical_arrow_between_boxes(ax, x_left, bounds_output1, bounds_group)
-    # Arrow from Waveform Features to Waveform Features Group
-    draw_vertical_arrow_between_boxes(ax, x_right, bounds_features, bounds_group)
-
-    # --- Grouping ---
-    draw_box(
-        ax,
-        x_left,
-        y_group,
-        bw_small,
-        bh,
-        "Position\nGroup",
-        COLORS["position"],
-        ref_num="[8]",
-    )
-    draw_box(
-        ax,
-        x_right,
-        y_group,
-        bw_small,
-        bh,
-        "Waveform\nFeatures Group",
-        COLORS["neural_frank"],
-        ref_num="[9]",
-    )
-
-    # Merge arrows to decoding (both streams converge)
-    # Position merge_y between group bottom and decoding top (respecting ARROW_GAP)
-    gap_to_decoding = bounds_group["bottom"] - bounds_decoding["top"]
-    merge_y = bounds_group["bottom"] - gap_to_decoding / 3  # Merge point 1/3 down
+    # Vertical lines from sources to merge point
     ax.plot(
         [x_left, x_left],
-        [bounds_group["bottom"] - ARROW_GAP, merge_y],
+        [bounds_left.bottom - ARROW_GAP, merge_y],
         color=COLORS["arrow"],
         linewidth=1,
     )
     ax.plot(
         [x_right, x_right],
-        [bounds_group["bottom"] - ARROW_GAP, merge_y],
+        [bounds_right.bottom - ARROW_GAP, merge_y],
         color=COLORS["arrow"],
         linewidth=1,
     )
+    # Horizontal line connecting branches
     ax.plot(
         [x_left, x_right],
         [merge_y, merge_y],
         color=COLORS["arrow"],
         linewidth=1,
     )
-    # Arrow down to decoding box (with gap above destination)
-    merge_end_y = bounds_decoding["top"] + ARROW_GAP
+    # Arrow to destination
+    merge_end_y = bounds_dst.top + ARROW_GAP
     draw_arrow(ax, (x_center, merge_y), (x_center, merge_end_y))
 
-    # --- Decoding ---
-    draw_box(
-        ax,
-        x_center,
-        y_decoding,
-        bw,
-        bh,
-        "Clusterless\nDecoding",
-        COLORS["decoding"],
-        ref_num="[10]",
-    )
 
-    # Arrow to decoding output
-    draw_vertical_arrow_between_boxes(ax, x_center, bounds_decoding, bounds_decode_out)
+def _draw_group_layer(
+    ax: Axes,
+    y_pos: float,
+    box_width: float,
+    box_height: float,
+    x_left: float,
+    x_right: float,
+    config: PanelConfig,
+) -> None:
+    """
+    Draw the grouping layer for a panel.
 
-    # --- Decoding output ---
-    draw_box(
-        ax,
-        x_center,
-        y_decode_out,
-        bw,
-        bh,
-        "Decoding\nOutput",
-        COLORS["merge"],
-        is_merge=True,
-        ref_num="[12]",
-    )
-
-    # Arrow to figure
-    draw_vertical_arrow_between_boxes(ax, x_center, bounds_decode_out, bounds_figure)
-
-    # --- Figure output ---
-    draw_box(
-        ax,
-        x_center,
-        y_figure,
-        bw_small,
-        bh_figure,
-        "Figure 5A",
-        COLORS["arrow"],
-        is_dashed=True,
-        fontsize=7,
-    )
-
-    # Panel label
-    ax.text(
-        0.02,
-        0.98,
-        "A",
-        transform=ax.transAxes,
-        fontsize=9,
-        fontweight="bold",
-        va="top",
-    )
-
-    # ==========================================================================
-    # PANEL B: Buzsaki Lab Dataset (Sorted Spikes Decoding)
-    # ==========================================================================
-    ax = axes["B"]
-
-    # Panel title
-    ax.text(
-        0.5,
-        0.98,
-        "NYU Dataset",
-        ha="center",
-        va="top",
-        fontsize=9,
-        fontweight="bold",
-        color=COLORS["text"],
-    )
-    ax.text(
-        0.5,
-        0.94,
-        "(Sorted Spikes Decoding)",
-        ha="center",
-        va="top",
-        fontsize=7,
-        color=COLORS["text"],
-    )
-
-    # --- NWB File ---
-    draw_box(ax, x_center, y_nwb, bw, bh, "NWB File\nDANDI:000059", COLORS["nwb"])
-
-    # Split arrow from NWB (reuse split_y calculated in Panel A for consistency)
-    ax.plot(
-        [x_center, x_center],
-        [bounds_nwb["bottom"] - ARROW_GAP, split_y],
-        color=COLORS["arrow"],
-        linewidth=1,
-    )
-    ax.plot(
-        [x_left, x_right],
-        [split_y, split_y],
-        color=COLORS["arrow"],
-        linewidth=1,
-    )
-    # Arrows down to input boxes (with gap above destination)
-    draw_arrow(ax, (x_left, split_y), (x_left, end_y))
-    draw_arrow(ax, (x_right, split_y), (x_right, end_y))
-
-    # --- Input layer ---
+    For clusterless panels (has_waveform_group=True): draws both position and
+    waveform feature groups.
+    For sorted spikes panels: draws only the position group.
+    """
+    # Position group is always drawn on the left
     draw_box(
         ax,
         x_left,
-        y_input,
+        y_pos,
+        box_width,
+        box_height,
+        "Position\nGroup",
+        COLORS["position"],
+        ref_num="[8]",
+    )
+    # Waveform features group only for clusterless pipeline
+    if config.has_waveform_group:
+        draw_box(
+            ax,
+            x_right,
+            y_pos,
+            box_width,
+            box_height,
+            config.group_label,
+            COLORS[config.neural_input_color],
+            ref_num=config.group_ref,
+        )
+
+
+def _draw_panel(
+    ax: Axes,
+    config: PanelConfig,
+    layout: LayoutConfig,
+    y_positions: dict[str, float],
+    bounds: dict[str, BoxBounds],
+) -> None:
+    """
+    Draw a complete decoding pipeline panel.
+
+    This renders the standard pipeline structure:
+    1. NWB source file
+    2. Split to position/neural input streams
+    3. Merge to output tables
+    4. Feature extraction (waveform features or sorted spikes group)
+    5. Grouping (position group, optionally waveform features group)
+    6. Merge streams to decoding
+    7. Decoding output
+    8. Figure output
+
+    The differences between clusterless and sorted spikes pipelines are
+    captured in the PanelConfig.
+    """
+    bw = layout.box_width
+    bw_small = layout.box_width_small
+    bh = layout.box_height
+    bh_figure = layout.box_height_figure
+
+    # Panel title and label
+    _draw_panel_title(ax, config.title, config.subtitle)
+
+    # Layer 1: NWB File
+    draw_box(
+        ax,
+        layout.x_center,
+        y_positions["nwb"],
+        bw,
+        bh,
+        f"NWB File\n{config.dandi_id}",
+        COLORS["nwb"],
+    )
+
+    # Arrow: NWB splits to position and neural inputs
+    _draw_split_arrow(
+        ax,
+        bounds["nwb"],
+        bounds["input"],
+        layout.x_center,
+        layout.x_left,
+        layout.x_right,
+    )
+
+    # Layer 2: Input streams (position and neural)
+    draw_box(
+        ax,
+        layout.x_left,
+        y_positions["input"],
         bw_small,
         bh,
         "Raw\nPosition",
@@ -771,24 +773,28 @@ def create_figure():
     )
     draw_box(
         ax,
-        x_right,
-        y_input,
+        layout.x_right,
+        y_positions["input"],
         bw_small,
         bh,
-        "Imported\nSpike Sorting",
-        COLORS["neural_buzsaki"],
-        ref_num="[3]",
+        config.neural_input_label,
+        COLORS[config.neural_input_color],
+        ref_num=config.neural_input_ref,
     )
 
-    # Arrows to output layer
-    draw_vertical_arrow_between_boxes(ax, x_left, bounds_input, bounds_output1)
-    draw_vertical_arrow_between_boxes(ax, x_right, bounds_input, bounds_output1)
+    # Arrows: Input to output layer
+    draw_vertical_arrow_between_boxes(
+        ax, layout.x_left, bounds["input"], bounds["output1"]
+    )
+    draw_vertical_arrow_between_boxes(
+        ax, layout.x_right, bounds["input"], bounds["output1"]
+    )
 
-    # --- Output merge tables ---
+    # Layer 3: Output merge tables
     draw_box(
         ax,
-        x_left,
-        y_output1,
+        layout.x_left,
+        y_positions["output1"],
         bw_small,
         bh,
         "Position\nOutput",
@@ -798,8 +804,8 @@ def create_figure():
     )
     draw_box(
         ax,
-        x_right,
-        y_output1,
+        layout.x_right,
+        y_positions["output1"],
         bw_small,
         bh,
         "Spike Sorting\nOutput",
@@ -808,85 +814,82 @@ def create_figure():
         ref_num="[5]",
     )
 
-    # Arrow from Spike Sorting Output to Sorted Spikes Group
-    draw_vertical_arrow_between_boxes(ax, x_right, bounds_output1, bounds_features)
+    # Arrow: Spike sorting output to features layer
+    draw_vertical_arrow_between_boxes(
+        ax, layout.x_right, bounds["output1"], bounds["features"]
+    )
 
-    # --- Sorted spikes group ---
+    # Layer 4: Features (waveform features or sorted spikes group)
     draw_box(
         ax,
-        x_right,
-        y_features,
+        layout.x_right,
+        y_positions["features"],
         bw_small,
         bh,
-        "Sorted Spikes\nGroup",
-        COLORS["neural_buzsaki"],
-        ref_num="[7]",
+        config.features_label,
+        COLORS[config.neural_input_color],
+        ref_num=config.features_ref,
     )
 
-    # Arrow from Position Output to Position Group (skips features row)
-    draw_vertical_arrow_between_boxes(ax, x_left, bounds_output1, bounds_group)
+    # Arrows: Position output skips to group; features to group
+    draw_vertical_arrow_between_boxes(
+        ax, layout.x_left, bounds["output1"], bounds["group"]
+    )
+    if config.has_waveform_group:
+        # Clusterless: waveform features -> waveform features group
+        draw_vertical_arrow_between_boxes(
+            ax, layout.x_right, bounds["features"], bounds["group"]
+        )
 
-    # --- Position grouping ---
-    draw_box(
+    # Layer 5: Grouping
+    _draw_group_layer(
         ax,
-        x_left,
-        y_group,
+        y_positions["group"],
         bw_small,
         bh,
-        "Position\nGroup",
-        COLORS["position"],
-        ref_num="[8]",
+        layout.x_left,
+        layout.x_right,
+        config,
     )
 
-    # Merge arrows to decoding (position group and sorted spikes group converge)
-    # In Panel B, the merge comes from group (left) and features (right)
-    # Position merge_y_b between the lower of the two sources and decoding top
-    gap_to_decoding_b = bounds_group["bottom"] - bounds_decoding["top"]
-    merge_y_b = bounds_group["bottom"] - gap_to_decoding_b / 3
-    # Position Group vertical line down (with gap below source)
-    ax.plot(
-        [x_left, x_left],
-        [bounds_group["bottom"] - ARROW_GAP, merge_y_b],
-        color=COLORS["arrow"],
-        linewidth=1,
+    # Arrows: Merge to decoding
+    # For clusterless: both streams merge from group layer
+    # For sorted spikes: position group + features layer merge
+    bounds_right_source = (
+        bounds["group"] if config.has_waveform_group else bounds["features"]
     )
-    # Sorted Spikes Group vertical line down (from features row, with gap below source)
-    ax.plot(
-        [x_right, x_right],
-        [bounds_features["bottom"] - ARROW_GAP, merge_y_b],
-        color=COLORS["arrow"],
-        linewidth=1,
+    _draw_merge_arrow(
+        ax,
+        bounds["group"],
+        bounds_right_source,
+        bounds["decoding"],
+        layout.x_left,
+        layout.x_right,
+        layout.x_center,
     )
-    ax.plot(
-        [x_left, x_right],
-        [merge_y_b, merge_y_b],
-        color=COLORS["arrow"],
-        linewidth=1,
-    )
-    # Arrow down to decoding box (with gap above destination)
-    merge_end_y_b = bounds_decoding["top"] + ARROW_GAP
-    draw_arrow(ax, (x_center, merge_y_b), (x_center, merge_end_y_b))
 
-    # --- Decoding ---
+    # Layer 6: Decoding
     draw_box(
         ax,
-        x_center,
-        y_decoding,
+        layout.x_center,
+        y_positions["decoding"],
         bw,
         bh,
-        "Sorted Spikes\nDecoding",
+        config.decoding_label,
         COLORS["decoding"],
-        ref_num="[11]",
+        ref_num=config.decoding_ref,
     )
 
-    # Arrow to decoding output
-    draw_vertical_arrow_between_boxes(ax, x_center, bounds_decoding, bounds_decode_out)
+    # Arrow: Decoding to decoding output
+    draw_vertical_arrow_between_boxes(
+        ax, layout.x_center, bounds["decoding"], bounds["decode_out"]
+    )
 
-    # --- Decoding output ---
+    # Layer 7: Decoding output
     draw_box(
         ax,
-        x_center,
-        y_decode_out,
+        layout.x_center,
+        y_positions["decode_out"],
         bw,
         bh,
         "Decoding\nOutput",
@@ -895,109 +898,78 @@ def create_figure():
         ref_num="[12]",
     )
 
-    # Arrow to figure
-    draw_vertical_arrow_between_boxes(ax, x_center, bounds_decode_out, bounds_figure)
+    # Arrow: Decoding output to figure
+    draw_vertical_arrow_between_boxes(
+        ax, layout.x_center, bounds["decode_out"], bounds["figure"]
+    )
 
-    # --- Figure output ---
+    # Layer 8: Figure output
     draw_box(
         ax,
-        x_center,
-        y_figure,
+        layout.x_center,
+        y_positions["figure"],
         bw_small,
         bh_figure,
-        "Figure 5B-D",
+        config.figure_output,
         COLORS["arrow"],
         is_dashed=True,
         fontsize=7,
     )
 
-    # Panel label
-    ax.text(
-        0.02,
-        0.98,
-        "B",
-        transform=ax.transAxes,
-        fontsize=9,
-        fontweight="bold",
-        va="top",
+    _draw_panel_label(ax, config.label)
+
+
+# =============================================================================
+# LEGEND AND TABLE REFERENCE
+# =============================================================================
+def _create_legend_patch(color_key: str) -> FancyBboxPatch:
+    """
+    Create a legend patch for the given color key.
+
+    Parameters
+    ----------
+    color_key : str
+        Key into the COLORS dictionary.
+
+    Returns
+    -------
+    FancyBboxPatch
+        A styled patch for use in the figure legend.
+    """
+    return FancyBboxPatch(
+        (0, 0),
+        0.1,
+        0.03,
+        boxstyle="round,pad=0.01",
+        facecolor=(*plt.cm.colors.hex2color(COLORS[color_key]), FILL_ALPHA),
+        edgecolor=COLORS[color_key],
+        linewidth=1,
     )
 
-    # ==========================================================================
-    # LEGEND
-    # ==========================================================================
-    # Add legend at bottom of figure
-    legend_y = -0.02
 
-    legend_elements = [
-        (
-            FancyBboxPatch(
-                (0, 0),
-                0.1,
-                0.03,
-                boxstyle="round,pad=0.01",
-                facecolor=(*plt.cm.colors.hex2color(COLORS["position"]), FILL_ALPHA),
-                edgecolor=COLORS["position"],
-                linewidth=1,
-            ),
-            "Position processing",
-        ),
-        (
-            FancyBboxPatch(
-                (0, 0),
-                0.1,
-                0.03,
-                boxstyle="round,pad=0.01",
-                facecolor=(*plt.cm.colors.hex2color(COLORS["neural_frank"]), FILL_ALPHA),
-                edgecolor=COLORS["neural_frank"],
-                linewidth=1,
-            ),
-            "Neural (clusterless)",
-        ),
-        (
-            FancyBboxPatch(
-                (0, 0),
-                0.1,
-                0.03,
-                boxstyle="round,pad=0.01",
-                facecolor=(
-                    *plt.cm.colors.hex2color(COLORS["neural_buzsaki"]),
-                    FILL_ALPHA,
-                ),
-                edgecolor=COLORS["neural_buzsaki"],
-                linewidth=1,
-            ),
-            "Neural (sorted)",
-        ),
-        (
-            FancyBboxPatch(
-                (0, 0),
-                0.1,
-                0.03,
-                boxstyle="round,pad=0.01",
-                facecolor=(*plt.cm.colors.hex2color(COLORS["decoding"]), FILL_ALPHA),
-                edgecolor=COLORS["decoding"],
-                linewidth=1,
-            ),
-            "Decoding",
-        ),
-        (
-            FancyBboxPatch(
-                (0, 0),
-                0.1,
-                0.03,
-                boxstyle="round,pad=0.01",
-                facecolor=(*plt.cm.colors.hex2color(COLORS["merge"]), FILL_ALPHA),
-                edgecolor=COLORS["merge"],
-                linewidth=1,
-            ),
-            "Merge table",
-        ),
+def _draw_legend(fig: Figure) -> None:
+    """
+    Draw the figure legend.
+
+    Parameters
+    ----------
+    fig : Figure
+        Matplotlib figure to draw the legend on.
+    """
+    legend_items = [
+        ("position", "Position processing"),
+        ("neural_frank", "Neural (clusterless)"),
+        ("neural_buzsaki", "Neural (sorted)"),
+        ("decoding", "Decoding"),
+        ("merge", "Merge table"),
     ]
 
-    # Create legend
+    handles = [_create_legend_patch(color_key) for color_key, _ in legend_items]
+    labels = [label for _, label in legend_items]
+
     fig.legend(
-        handles=[e[0] for e in legend_elements],
-        labels=[e[1] for e in legend_elements],
+        handles=handles,
+        labels=labels,
         loc="lower center",
         ncol=5,
         fontsize=6,
@@ -1007,16 +979,78 @@ def create_figure():
         handleheight=1.5,
     )
 
-    # ==========================================================================
-    # TABLE REFERENCE
-    # ==========================================================================
-    # Add table reference below the legend
-    table_ref_y = 0.12  # Y position for table reference title
 
-    # Table reference title
+def _draw_table_reference_section(
+    fig: Figure,
+    x: float,
+    start_y: float,
+    title: str,
+    entries: list[str],
+    layout: LayoutConfig,
+) -> float:
+    """
+    Draw a section of the table reference.
+
+    Parameters
+    ----------
+    fig : Figure
+        Matplotlib figure to draw on.
+    x : float
+        X coordinate for the section (figure coordinates).
+    start_y : float
+        Y coordinate for the section title (figure coordinates).
+    title : str
+        Section title text (displayed in bold).
+    entries : list[str]
+        List of entry strings to display below the title.
+    layout : LayoutConfig
+        Layout configuration with font sizes and spacing.
+
+    Returns
+    -------
+    float
+        The Y position after the last entry.
+    """
+    y_pos = start_y
+    fig.text(
+        x,
+        y_pos,
+        title,
+        ha="left",
+        va="top",
+        fontsize=layout.ref_fontsize,
+        fontweight="bold",
+        color=COLORS["text"],
+    )
+    for entry in entries:
+        y_pos -= layout.line_spacing
+        fig.text(
+            x,
+            y_pos,
+            entry,
+            ha="left",
+            va="top",
+            fontsize=layout.ref_fontsize,
+            color=COLORS["text"],
+        )
+    return y_pos
+
+
+def _draw_table_reference(fig: Figure, layout: LayoutConfig) -> None:
+    """
+    Draw the table reference section below the legend.
+
+    Parameters
+    ----------
+    fig : Figure
+        Matplotlib figure to draw on.
+    layout : LayoutConfig
+        Layout configuration with positioning and font settings.
+    """
+    # Title
     fig.text(
         0.5,
-        table_ref_y,
+        layout.table_ref_y,
         "Table Reference",
         ha="center",
         va="top",
@@ -1025,79 +1059,175 @@ def create_figure():
         color=COLORS["text"],
     )
 
-    # Table reference content - organized in columns
-    # Left column: Sources and Aggregation
-    # Right column: Feature Extraction & Grouping and Analysis
-    ref_fontsize = 6
-    line_spacing = 0.022
-    col1_x = 0.08  # Left column x position
-    col2_x = 0.55  # Right column x position
+    start_y = layout.table_ref_y - 0.035
 
     # Column 1: Sources
-    y_pos = table_ref_y - 0.035
-    fig.text(col1_x, y_pos, "Sources", ha="left", va="top", fontsize=ref_fontsize,
-             fontweight="bold", color=COLORS["text"])
-    y_pos -= line_spacing
-    fig.text(col1_x, y_pos, "[1]  TrodesPosV1 – Position processing", ha="left",
-             va="top", fontsize=ref_fontsize, color=COLORS["text"])
-    y_pos -= line_spacing
-    fig.text(col1_x, y_pos, "[2]  SpikeSortingRecording – Spike detection & sorting",
-             ha="left", va="top", fontsize=ref_fontsize, color=COLORS["text"])
-    y_pos -= line_spacing
-    fig.text(col1_x, y_pos, "[3]  ImportedSpikeSorting – Pre-sorted units from NWB",
-             ha="left", va="top", fontsize=ref_fontsize, color=COLORS["text"])
+    sources = [
+        "[1]  TrodesPosV1 - Position processing",
+        "[2]  SpikeSortingRecording - Spike detection & sorting",
+        "[3]  ImportedSpikeSorting - Pre-sorted units from NWB",
+    ]
+    y_pos = _draw_table_reference_section(
+        fig, layout.col1_x, start_y, "Sources", sources, layout
+    )
 
-    # Column 1: Aggregation (Merge Tables)
-    y_pos -= line_spacing * 1.3
-    fig.text(col1_x, y_pos, "Aggregation (Merge Tables)", ha="left", va="top",
-             fontsize=ref_fontsize, fontweight="bold", color=COLORS["text"])
-    y_pos -= line_spacing
-    fig.text(col1_x, y_pos, "[4]  PositionOutput – Aggregates position sources",
-             ha="left", va="top", fontsize=ref_fontsize, color=COLORS["text"])
-    y_pos -= line_spacing
-    fig.text(col1_x, y_pos, "[5]  SpikeSortingOutput – Aggregates spike sorting sources",
-             ha="left", va="top", fontsize=ref_fontsize, color=COLORS["text"])
-    y_pos -= line_spacing
-    fig.text(col1_x, y_pos, "[12] DecodingOutput – Aggregates decoding results",
-             ha="left", va="top", fontsize=ref_fontsize, color=COLORS["text"])
+    # Column 1: Aggregation
+    aggregation = [
+        "[4]  PositionOutput - Aggregates position sources",
+        "[5]  SpikeSortingOutput - Aggregates spike sorting sources",
+        "[12] DecodingOutput - Aggregates decoding results",
+    ]
+    y_pos -= layout.line_spacing * 1.3
+    _draw_table_reference_section(
+        fig,
+        layout.col1_x,
+        y_pos,
+        "Aggregation (Merge Tables)",
+        aggregation,
+        layout,
+    )
 
     # Column 2: Feature Extraction & Grouping
-    y_pos2 = table_ref_y - 0.035
-    fig.text(col2_x, y_pos2, "Feature Extraction & Grouping", ha="left", va="top",
-             fontsize=ref_fontsize, fontweight="bold", color=COLORS["text"])
-    y_pos2 -= line_spacing
-    fig.text(col2_x, y_pos2, "[6]  UnitWaveformFeatures – Waveform amplitudes",
-             ha="left", va="top", fontsize=ref_fontsize, color=COLORS["text"])
-    y_pos2 -= line_spacing
-    fig.text(col2_x, y_pos2, "[7]  SortedSpikesGroup – Group sorted units",
-             ha="left", va="top", fontsize=ref_fontsize, color=COLORS["text"])
-    y_pos2 -= line_spacing
-    fig.text(col2_x, y_pos2, "[8]  PositionGroup – Group position data",
-             ha="left", va="top", fontsize=ref_fontsize, color=COLORS["text"])
-    y_pos2 -= line_spacing
-    fig.text(col2_x, y_pos2, "[9]  UnitWaveformFeaturesGroup – Group waveform features",
-             ha="left", va="top", fontsize=ref_fontsize, color=COLORS["text"])
+    features = [
+        "[6]  UnitWaveformFeatures - Waveform amplitudes",
+        "[7]  SortedSpikesGroup - Group sorted units",
+        "[8]  PositionGroup - Group position data",
+        "[9]  UnitWaveformFeaturesGroup - Group waveform features",
+    ]
+    y_pos2 = _draw_table_reference_section(
+        fig,
+        layout.col2_x,
+        start_y,
+        "Feature Extraction & Grouping",
+        features,
+        layout,
+    )
 
     # Column 2: Analysis
-    y_pos2 -= line_spacing * 1.3
-    fig.text(col2_x, y_pos2, "Analysis", ha="left", va="top",
-             fontsize=ref_fontsize, fontweight="bold", color=COLORS["text"])
-    y_pos2 -= line_spacing
-    fig.text(col2_x, y_pos2, "[10] ClusterlessDecodingV1 – Decode from waveform features",
-             ha="left", va="top", fontsize=ref_fontsize, color=COLORS["text"])
-    y_pos2 -= line_spacing
-    fig.text(col2_x, y_pos2, "[11] SortedSpikesDecodingV1 – Decode from sorted spikes",
-             ha="left", va="top", fontsize=ref_fontsize, color=COLORS["text"])
+    analysis = [
+        "[10] ClusterlessDecodingV1 - Decode from waveform features",
+        "[11] SortedSpikesDecodingV1 - Decode from sorted spikes",
+    ]
+    y_pos2 -= layout.line_spacing * 1.3
+    _draw_table_reference_section(
+        fig, layout.col2_x, y_pos2, "Analysis", analysis, layout
+    )
+
+
+# =============================================================================
+# MAIN FIGURE CREATION
+# =============================================================================
+def _compute_box_bounds(
+    y_positions: dict[str, float], layout: LayoutConfig
+) -> dict[str, BoxBounds]:
+    """
+    Compute visual bounds for all box rows.
+
+    Parameters
+    ----------
+    y_positions : dict[str, float]
+        Mapping of layer names to Y center coordinates.
+    layout : LayoutConfig
+        Layout configuration with box dimensions.
+
+    Returns
+    -------
+    dict[str, BoxBounds]
+        Mapping of layer names to visual bounds for arrow attachment.
+    """
+    bh = layout.box_height
+    bh_figure = layout.box_height_figure
+
+    return {
+        "nwb": get_box_bounds(y_positions["nwb"], bh, is_merge=False),
+        "input": get_box_bounds(y_positions["input"], bh, is_merge=False),
+        "output1": get_box_bounds(y_positions["output1"], bh, is_merge=True),
+        "features": get_box_bounds(y_positions["features"], bh, is_merge=False),
+        "group": get_box_bounds(y_positions["group"], bh, is_merge=False),
+        "decoding": get_box_bounds(y_positions["decoding"], bh, is_merge=False),
+        "decode_out": get_box_bounds(
+            y_positions["decode_out"], bh, is_merge=True
+        ),
+        "figure": get_box_bounds(
+            y_positions["figure"], bh_figure, is_merge=False
+        ),
+    }
+
+
+def _setup_figure(layout: LayoutConfig) -> tuple[Figure, dict[str, Axes]]:
+    """
+    Create and configure the figure and axes.
+
+    Parameters
+    ----------
+    layout : LayoutConfig
+        Layout configuration with figure dimensions.
+
+    Returns
+    -------
+    tuple[Figure, dict[str, Axes]]
+        The figure and a dictionary mapping panel labels to axes.
+    """
+    fig, axes = plt.subplot_mosaic(
+        [["A", "B"]],
+        figsize=(layout.fig_width, layout.fig_height),
+        width_ratios=[1, 1],
+        dpi=300,
+        constrained_layout=True,
+    )
+
+    for ax in axes.values():
+        ax.set_xlim(0, 1)
+        ax.set_ylim(0, 1)
+        ax.axis("off")
+
+    return fig, axes
+
+
+def create_figure(layout: LayoutConfig | None = None) -> Figure:
+    """
+    Create the supplemental figure showing decoding workflows.
+
+    Parameters
+    ----------
+    layout : LayoutConfig, optional
+        Layout configuration. Uses default if not provided.
+
+    Returns
+    -------
+    Figure
+        The matplotlib figure object.
+    """
+    if layout is None:
+        layout = DEFAULT_LAYOUT
+
+    set_figure_defaults()
+
+    fig, axes = _setup_figure(layout)
+    y_positions = layout.get_y_positions()
+    bounds = _compute_box_bounds(y_positions, layout)
+
+    # Draw panels
+    _draw_panel(axes["A"], PANEL_A_CONFIG, layout, y_positions, bounds)
+    _draw_panel(axes["B"], PANEL_B_CONFIG, layout, y_positions, bounds)
+
+    # Draw legend and table reference
+    _draw_legend(fig)
+    _draw_table_reference(fig, layout)
 
     return fig
 
 
-def main():
-    """Generate and save the supplemental figure."""
-    # Get script directory for output
+def main() -> None:
+    """
+    Generate and save the supplemental figure.
+
+    Creates the Figure 5 supplemental workflow diagram and saves it as both
+    PDF and PNG in the same directory as this script.
+    """
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
-    fig = create_figure()
+    create_figure()
     save_figure("figure5_supp", output_dir=script_dir)
     plt.close()
 
