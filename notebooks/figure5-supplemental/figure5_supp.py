@@ -416,7 +416,7 @@ def create_figure():
 
     # Figure dimensions (from design spec)
     fig_width = 7.0  # Two-column width
-    fig_height = 5.5
+    fig_height = 7.0  # Increased to accommodate table reference
 
     fig, axes = plt.subplot_mosaic(
         [["A", "B"]],
@@ -445,7 +445,7 @@ def create_figure():
     # We have 8 rows: nwb, input, output1, features, group, decoding, decode_out, figure
     n_rows = 8
     y_top = 0.86  # Center of first box (leave room for title above)
-    y_bottom = 0.08  # Center of last box (leave room for legend below)
+    y_bottom = 0.08  # Center of last box
     total_height = y_top - y_bottom
 
     # We want: row_spacing = box_height + gap_between_boxes
@@ -1006,6 +1006,88 @@ def create_figure():
         handlelength=2,
         handleheight=1.5,
     )
+
+    # ==========================================================================
+    # TABLE REFERENCE
+    # ==========================================================================
+    # Add table reference below the legend
+    table_ref_y = -0.04  # Y position for table reference title
+
+    # Table reference title
+    fig.text(
+        0.5,
+        table_ref_y,
+        "Table Reference",
+        ha="center",
+        va="top",
+        fontsize=8,
+        fontweight="bold",
+        color=COLORS["text"],
+    )
+
+    # Table reference content - organized in columns
+    # Left column: Sources and Aggregation
+    # Right column: Feature Extraction & Grouping and Analysis
+    ref_fontsize = 6
+    line_spacing = 0.022
+    col1_x = 0.08  # Left column x position
+    col2_x = 0.55  # Right column x position
+
+    # Column 1: Sources
+    y_pos = table_ref_y - 0.035
+    fig.text(col1_x, y_pos, "Sources", ha="left", va="top", fontsize=ref_fontsize,
+             fontweight="bold", color=COLORS["text"])
+    y_pos -= line_spacing
+    fig.text(col1_x, y_pos, "[1]  TrodesPosV1 – Position processing", ha="left",
+             va="top", fontsize=ref_fontsize, color=COLORS["text"])
+    y_pos -= line_spacing
+    fig.text(col1_x, y_pos, "[2]  SpikeSortingRecording – Spike detection & sorting",
+             ha="left", va="top", fontsize=ref_fontsize, color=COLORS["text"])
+    y_pos -= line_spacing
+    fig.text(col1_x, y_pos, "[3]  ImportedSpikeSorting – Pre-sorted units from NWB",
+             ha="left", va="top", fontsize=ref_fontsize, color=COLORS["text"])
+
+    # Column 1: Aggregation (Merge Tables)
+    y_pos -= line_spacing * 1.3
+    fig.text(col1_x, y_pos, "Aggregation (Merge Tables)", ha="left", va="top",
+             fontsize=ref_fontsize, fontweight="bold", color=COLORS["text"])
+    y_pos -= line_spacing
+    fig.text(col1_x, y_pos, "[4]  PositionOutput – Aggregates position sources",
+             ha="left", va="top", fontsize=ref_fontsize, color=COLORS["text"])
+    y_pos -= line_spacing
+    fig.text(col1_x, y_pos, "[5]  SpikeSortingOutput – Aggregates spike sorting sources",
+             ha="left", va="top", fontsize=ref_fontsize, color=COLORS["text"])
+    y_pos -= line_spacing
+    fig.text(col1_x, y_pos, "[12] DecodingOutput – Aggregates decoding results",
+             ha="left", va="top", fontsize=ref_fontsize, color=COLORS["text"])
+
+    # Column 2: Feature Extraction & Grouping
+    y_pos2 = table_ref_y - 0.035
+    fig.text(col2_x, y_pos2, "Feature Extraction & Grouping", ha="left", va="top",
+             fontsize=ref_fontsize, fontweight="bold", color=COLORS["text"])
+    y_pos2 -= line_spacing
+    fig.text(col2_x, y_pos2, "[6]  UnitWaveformFeatures – Waveform amplitudes",
+             ha="left", va="top", fontsize=ref_fontsize, color=COLORS["text"])
+    y_pos2 -= line_spacing
+    fig.text(col2_x, y_pos2, "[7]  SortedSpikesGroup – Group sorted units",
+             ha="left", va="top", fontsize=ref_fontsize, color=COLORS["text"])
+    y_pos2 -= line_spacing
+    fig.text(col2_x, y_pos2, "[8]  PositionGroup – Group position data",
+             ha="left", va="top", fontsize=ref_fontsize, color=COLORS["text"])
+    y_pos2 -= line_spacing
+    fig.text(col2_x, y_pos2, "[9]  UnitWaveformFeaturesGroup – Group waveform features",
+             ha="left", va="top", fontsize=ref_fontsize, color=COLORS["text"])
+
+    # Column 2: Analysis
+    y_pos2 -= line_spacing * 1.3
+    fig.text(col2_x, y_pos2, "Analysis", ha="left", va="top",
+             fontsize=ref_fontsize, fontweight="bold", color=COLORS["text"])
+    y_pos2 -= line_spacing
+    fig.text(col2_x, y_pos2, "[10] ClusterlessDecodingV1 – Decode from waveform features",
+             ha="left", va="top", fontsize=ref_fontsize, color=COLORS["text"])
+    y_pos2 -= line_spacing
+    fig.text(col2_x, y_pos2, "[11] SortedSpikesDecodingV1 – Decode from sorted spikes",
+             ha="left", va="top", fontsize=ref_fontsize, color=COLORS["text"])
 
     return fig
 
