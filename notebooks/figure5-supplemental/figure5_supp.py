@@ -7,13 +7,19 @@ used in Figure 5: clusterless decoding (UCSF) and sorted spikes decoding (NYU).
 
 from __future__ import annotations
 
-import os
+import sys
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
+
+# Add src to path for paper_plotting imports
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
+
+from paper_plotting import save_figure
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -21,10 +27,15 @@ if TYPE_CHECKING:
 
 
 # =============================================================================
-# FIGURE UTILITIES (standalone - no external dependencies)
+# FIGURE UTILITIES
 # =============================================================================
-def set_figure_defaults() -> None:
-    """Set matplotlib defaults for publication-quality figures."""
+def set_figure_defaults_supp() -> None:
+    """
+    Set matplotlib defaults for supplemental flowchart figure.
+
+    This uses a slightly different style than the main figures (no seaborn,
+    white background for the flowchart).
+    """
     rc_params = {
         "font.family": "sans-serif",
         "pdf.fonttype": 42,
@@ -37,32 +48,6 @@ def set_figure_defaults() -> None:
         "savefig.transparent": False,
     }
     mpl.rcParams.update(rc_params)
-
-
-def save_figure(figure_name: str, output_dir: str | None = None) -> None:
-    """
-    Save the current matplotlib figure as both PDF and PNG.
-
-    Parameters
-    ----------
-    figure_name : str
-        Base name for the output files (without extension).
-    output_dir : str, optional
-        Directory to save files to. Creates directory if it doesn't exist.
-        Defaults to current working directory.
-
-    Notes
-    -----
-    Files are saved at 300 DPI with tight bounding boxes.
-    """
-    if output_dir is None:
-        output_dir = "."
-    os.makedirs(output_dir, exist_ok=True)
-    pdf_path = os.path.join(output_dir, f"{figure_name}.pdf")
-    png_path = os.path.join(output_dir, f"{figure_name}.png")
-    plt.savefig(pdf_path, dpi=300, bbox_inches="tight", transparent=False)
-    plt.savefig(png_path, dpi=300, bbox_inches="tight", transparent=False)
-    print(f"Saved: {pdf_path} and {png_path}")
 
 
 # =============================================================================
@@ -1201,7 +1186,7 @@ def create_figure(layout: LayoutConfig | None = None) -> Figure:
     if layout is None:
         layout = DEFAULT_LAYOUT
 
-    set_figure_defaults()
+    set_figure_defaults_supp()
 
     fig, axes = _setup_figure(layout)
     y_positions = layout.get_y_positions()
@@ -1225,10 +1210,10 @@ def main() -> None:
     Creates the Figure 5 supplemental workflow diagram and saves it as both
     PDF and PNG in the same directory as this script.
     """
-    script_dir = os.path.dirname(os.path.abspath(__file__))
+    script_dir = Path(__file__).parent
 
     create_figure()
-    save_figure("figure5_supp", output_dir=script_dir)
+    save_figure("figure5_supp", output_dir=script_dir, transparent=False)
     plt.close()
 
     print("Figure generation complete!")

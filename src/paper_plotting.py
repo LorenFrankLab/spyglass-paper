@@ -1,27 +1,49 @@
+"""
+Shared plotting utilities for Spyglass paper figures.
+
+This module provides publication-quality figure defaults, saving utilities,
+and common visualization functions used across all figure scripts.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+import matplotlib
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
-import matplotlib
 import numpy as np
 import seaborn as sns
-import sortingview.views as vv
-from non_local_detector.analysis import (
-    get_ahead_behind_distance,
-    get_trajectory_data,
-)
-from non_local_detector.visualization.figurl_1D import create_1D_decode_view
 
-# Figure Parameters
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
+
+    import networkx as nx
+
+# =============================================================================
+# FIGURE DIMENSION CONSTANTS
+# =============================================================================
 MM_TO_INCHES = 1.0 / 25.4
 
+ONE_COLUMN = 89.0 * MM_TO_INCHES
 ONE_AND_HALF_COLUMN = 140.0 * MM_TO_INCHES
 TWO_COLUMN = 178.0 * MM_TO_INCHES
-ONE_COLUMN = TWO_COLUMN / 2.0
 PAGE_HEIGHT = 247.0 * MM_TO_INCHES
 GOLDEN_RATIO = (np.sqrt(5) - 1.0) / 2.0
 
 
-def set_figure_defaults():
-    # Set background and fontsize
+# =============================================================================
+# FIGURE SETUP AND SAVING
+# =============================================================================
+def set_figure_defaults() -> None:
+    """
+    Set matplotlib defaults for publication-quality figures.
+
+    Configures seaborn and matplotlib rcParams for consistent styling
+    across all figure panels, including font sizes, tick sizes, and
+    color settings suitable for journal publication.
+    """
     rc_params = {
         "pdf.fonttype": 42,  # Make fonts editable in Adobe Illustrator
         "ps.fonttype": 42,  # Make fonts editable in Adobe Illustrator
@@ -41,57 +63,167 @@ def set_figure_defaults():
     sns.set(style="white", context="paper", rc=rc_params, font_scale=1.4)
 
 
-def save_figure(figure_name, facecolor=None, transparent=True):
-    if facecolor is None:
-        plt.savefig(
-            f"{figure_name}.pdf",
-            transparent=transparent,
-            dpi=300,
-            bbox_inches="tight",
-        )
+def save_figure(
+    figure_name: str,
+    output_dir: str | Path | None = None,
+    transparent: bool = True,
+    facecolor: str | None = None,
+) -> None:
+    """
+    Save the current matplotlib figure as both PDF and PNG.
+
+    Parameters
+    ----------
+    figure_name : str
+        Base name for the output files (without extension).
+    output_dir : str or Path, optional
+        Directory where figures will be saved. Created if it doesn't exist.
+        Defaults to current working directory.
+    transparent : bool, optional
+        Whether to save with transparent background, by default True.
+    facecolor : str, optional
+        Background color for the figure. Only used if transparent is False.
+    """
+    if output_dir is None:
+        output_dir = Path(".")
     else:
-        plt.savefig(
-            f"{figure_name}.pdf",
-            transparent=transparent,
-            dpi=300,
-            bbox_inches="tight",
-            facecolor=facecolor,
-        )
-    plt.savefig(
-        f"{figure_name}.png",
-        transparent=transparent,
-        dpi=300,
-        bbox_inches="tight",
+        output_dir = Path(output_dir)
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    pdf_path = output_dir / f"{figure_name}.pdf"
+    png_path = output_dir / f"{figure_name}.png"
+
+    save_kwargs = {
+        "dpi": 300,
+        "bbox_inches": "tight",
+        "transparent": transparent,
+    }
+    if facecolor is not None:
+        save_kwargs["facecolor"] = facecolor
+
+    plt.savefig(pdf_path, **save_kwargs)
+    plt.savefig(png_path, **save_kwargs)
+    print(f"Saved: {pdf_path} and {png_path}")
+
+
+# =============================================================================
+# PLOTTING HELPERS
+# =============================================================================
+def add_scalebar(
+    ax: Axes,
+    length: float,
+    label: str,
+    position: tuple[float, float] = (0.05, 0.05),
+    linewidth: int = 3,
+    color: str = "black",
+    fontsize: int = 11,
+    text_offset: float = -5.0,
+) -> None:
+    """
+    Add a scale bar to a matplotlib Axes.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        The axes to add the scale bar to.
+    length : float
+        Length of the scale bar in data coordinates (typically cm for position
+        data in this module).
+    label : str
+        Text label for the scale bar (e.g., "20 cm").
+    position : tuple of float, optional
+        Position of the scale bar in axes coordinates (0-1), by default (0.05, 0.05).
+    linewidth : int, optional
+        Width of the scale bar line in points, by default 3.
+    color : str, optional
+        Color of the scale bar and label, by default "black".
+    fontsize : int, optional
+        Font size for the label in points, by default 11.
+    text_offset : float, optional
+        Vertical offset for the label in data coordinates (typically cm),
+        by default -5.0.
+    """
+    trans = ax.transAxes + ax.transData.inverted()
+    x, y = trans.transform(position)
+
+    bar = mpatches.Rectangle(
+        (x, y),
+        length,
+        0,
+        linewidth=linewidth,
+        color=color,
+        transform=ax.transData,
+    )
+    ax.add_patch(bar)
+
+    ax.text(
+        x + length / 2,
+        y + text_offset,
+        label,
+        ha="center",
+        va="top",
+        color=color,
+        fontsize=fontsize,
+        transform=ax.transData,
     )
 
 
 def plot_graph_as_1D(
-    track_graph,
-    ax=None,
-    edge_order=None,
-    edge_spacing=0.0,
-    reward_well_nodes=None,
-    other_axis_start=0,
-    edge_colors=None,
-    reward_well_size=10,
-    edege_linewidth=2,
-):
+    track_graph: nx.Graph,
+    ax: Axes | None = None,
+    edge_order: list[tuple[int, int]] | None = None,
+    edge_spacing: float | list[float] = 0.0,
+    reward_well_nodes: list[int] | None = None,
+    other_axis_start: float = 0,
+    edge_colors: np.ndarray | None = None,
+    reward_well_size: int = 10,
+    edge_linewidth: int = 2,
+) -> None:
+    """
+    Plot track graph as 1D linearized representation.
+
+    Draws the track graph edges as vertical line segments positioned
+    sequentially to show the linearized track structure, with optional
+    markers for reward well locations.
+
+    Parameters
+    ----------
+    track_graph : networkx.Graph
+        Track graph with edges containing 'distance' attributes (in cm).
+    ax : matplotlib.axes.Axes, optional
+        Axes to plot on. If None, uses current axes.
+    edge_order : list of tuple of int, optional
+        Order of edges for linearization. Each tuple is (node1, node2).
+        If None, uses graph's natural edge order.
+    edge_spacing : float or list of float, optional
+        Spacing between edges in cm. If float, same spacing for all.
+        If list, spacing after each edge (length n_edges - 1).
+        By default 0.0.
+    reward_well_nodes : list of int, optional
+        Node indices that are reward wells (marked with scatter points).
+    other_axis_start : float, optional
+        X-position for the 1D representation in data coordinates (typically
+        time in seconds), by default 0.
+    edge_colors : ndarray, optional
+        Array of RGB colors for each edge. If None, uses tab10 colormap.
+    reward_well_size : int, optional
+        Marker size for reward well points in points^2, by default 10.
+    edge_linewidth : int, optional
+        Line width for edge segments in points, by default 2.
+    """
     if ax is None:
         ax = plt.gca()
-    # If no edge_order is given, then arange edges in the order passed to
-    # construct the track graph
     if edge_order is None:
-        edge_order = np.asarray(track_graph.edges)
+        edge_order = list(track_graph.edges)
     if reward_well_nodes is None:
         reward_well_nodes = []
     if edge_colors is None:
         edge_colors = np.array(matplotlib.colormaps.get_cmap("tab10").colors)
 
     n_edges = len(edge_order)
-    if isinstance(edge_spacing, int) | isinstance(edge_spacing, float):
-        edge_spacing = [
-            edge_spacing,
-        ] * (n_edges - 1)
+    if isinstance(edge_spacing, (int, float)):
+        edge_spacing = [edge_spacing] * (n_edges - 1)
 
     start_node_linear_position = 0.0
 
@@ -105,7 +237,7 @@ def plot_graph_as_1D(
             color=edge_colors[edge_ind],
             clip_on=False,
             zorder=7,
-            linewidth=edege_linewidth,
+            linewidth=edge_linewidth,
         )
         if edge[0] in reward_well_nodes:
             ax.scatter(
@@ -126,91 +258,68 @@ def plot_graph_as_1D(
                 clip_on=False,
             )
 
-        try:
+        # Update position for next edge (skip spacing on last edge)
+        if edge_ind < len(edge_spacing):
             start_node_linear_position += (
                 track_graph.edges[edge]["distance"] + edge_spacing[edge_ind]
             )
-        except IndexError:
-            pass
-
-
-def add_scalebar(
-    ax,
-    length,
-    label,
-    position=(0.05, 0.05),
-    linewidth=3,
-    color="black",
-    fontsize=12,
-    text_offset=0.20,
-):
-    """
-    Add a scale bar to a Matplotlib Axes.
-
-    Parameters:
-    ax : matplotlib.axes.Axes
-        The Axes object to which the scalebar will be added.
-    length : float
-        The length of the scale bar in data units.
-    label : str
-        The label for the scale bar (e.g., '5 km').
-    position : tuple
-        The position of the scale bar in Axes coordinates (from 0 to 1).
-    linewidth : int
-        The linewidth of the scale bar.
-    color : str
-        The color of the scale bar.
-    fontsize : int
-        The fontsize of the label text.
-    text_offset : float
-        The offset of the label text from the scale bar in data units.
-    """
-
-    # Transform position from Axes coordinates to Data coordinates
-    trans = ax.transAxes + ax.transData.inverted()
-    x, y = trans.transform(position)
-
-    # Draw scale bar
-    bar = mpatches.Rectangle(
-        (x, y),
-        length,
-        0,
-        linewidth=linewidth,
-        color=color,
-        transform=ax.transData,
-    )
-    ax.add_patch(bar)
-
-    # Add label
-    ax.text(
-        x + length / 2,
-        y + text_offset,
-        label,
-        ha="center",
-        va="top",
-        color=color,
-        fontsize=fontsize,
-        transform=ax.transData,
-    )
+        else:
+            start_node_linear_position += track_graph.edges[edge]["distance"]
 
 
 def plot_2D_track_graph(
-    track_graph,
+    track_graph: nx.Graph,
     position_info,
-    edge_order=None,
-    reward_well_nodes=None,
-    edge_colors=None,
-    figsize=(TWO_COLUMN / 3 * 0.6, TWO_COLUMN / 3 * 0.6),
-    position_names=("position_x", "position_y"),
-):
+    edge_order: list[tuple[int, int]] | None = None,
+    reward_well_nodes: list[int] | None = None,
+    edge_colors: np.ndarray | None = None,
+    figsize: tuple[float, float] | None = None,
+    position_names: tuple[str, str] = ("position_x", "position_y"),
+    scalebar_length: float = 20,
+    scalebar_label: str = "20 cm",
+) -> tuple[plt.Figure, Axes]:
+    """
+    Plot 2D track graph with position trajectory overlay.
+
+    Parameters
+    ----------
+    track_graph : networkx.Graph
+        Track graph with nodes containing 'pos' attributes.
+    position_info : pandas.DataFrame
+        DataFrame containing position columns for trajectory overlay.
+    edge_order : list of tuple of int, optional
+        Order of edges. If None, uses graph's natural edge order.
+    reward_well_nodes : list of int, optional
+        Node indices that are reward wells (marked with scatter points).
+    edge_colors : ndarray, optional
+        Array of colors for each edge. If None, uses tab10 colormap.
+    figsize : tuple of float, optional
+        Figure size. If None, uses default based on TWO_COLUMN.
+    position_names : tuple of str, optional
+        Column names for (x, y) position in position_info.
+    scalebar_length : float, optional
+        Length of scale bar in data units, by default 20.
+    scalebar_label : str, optional
+        Label for scale bar, by default "20 cm".
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        The figure object.
+    ax : matplotlib.axes.Axes
+        The axes object.
+    """
     if reward_well_nodes is None:
         reward_well_nodes = []
     if edge_colors is None:
         edge_colors = np.array(matplotlib.colormaps.get_cmap("tab10").colors)
     if edge_order is None:
-        edge_order = np.asarray(track_graph.edges)
+        edge_order = list(track_graph.edges)
+    if figsize is None:
+        figsize = (TWO_COLUMN / 3 * 0.6, TWO_COLUMN / 3 * 0.6)
 
     fig, ax = plt.subplots(figsize=figsize, constrained_layout=True)
+
     ax.plot(
         position_info[position_names[0]],
         position_info[position_names[1]],
@@ -221,14 +330,14 @@ def plot_2D_track_graph(
     for edge_color, (node1, node2) in zip(edge_colors, edge_order):
         node1_pos = track_graph.nodes[node1]["pos"]
         node2_pos = track_graph.nodes[node2]["pos"]
-        h = ax.plot(
+        ax.plot(
             [node1_pos[0], node2_pos[0]],
             [node1_pos[1], node2_pos[1]],
             linewidth=2,
             color=edge_color,
         )
         if node1 in reward_well_nodes:
-            plt.scatter(
+            ax.scatter(
                 node1_pos[0],
                 node1_pos[1],
                 color=edge_color,
@@ -243,234 +352,9 @@ def plot_2D_track_graph(
                 s=30,
                 zorder=10,
             )
-    add_scalebar(ax, 20, "20 cm", fontsize=11, text_offset=-5.0)
+
+    add_scalebar(ax, scalebar_length, scalebar_label)
     ax.set_aspect("equal", adjustable="box")
-    plt.axis("off")
+    ax.axis("off")
 
-
-def plot_decode(
-    time_slice_ind,
-    posterior,
-    results,
-    classifier,
-    linear_position_info,
-    multiunit_rate,
-    track_graph,
-    edge_order=None,
-    edge_spacing=0.0,
-    reward_well_nodes=None,
-    edge_colors=None,
-):
-    orientation_name = linear_position_info.columns[
-        linear_position_info.columns.isin(["orientation", "head_orientation"])
-    ][0]
-    speed_name = linear_position_info.columns[
-        linear_position_info.columns.isin(["speed", "head_speed"])
-    ][0]
-    if edge_colors is None:
-        edge_colors = np.array(matplotlib.colormaps.get_cmap("tab10").colors)
-
-    n_edges = len(edge_order)
-    if isinstance(edge_spacing, int) | isinstance(edge_spacing, float):
-        edge_spacing = [
-            edge_spacing,
-        ] * (n_edges - 1)
-    if reward_well_nodes is None:
-        reward_well_nodes = []
-
-    time_slice = slice(
-        results.time.values[time_slice_ind.start],
-        results.time.values[time_slice_ind.stop],
-    )
-
-    fig, axes = plt.subplots(
-        4,
-        1,
-        figsize=(TWO_COLUMN / 3, PAGE_HEIGHT * 0.5),
-        height_ratios=[4, 1, 1, 1],
-        sharex=True,
-        constrained_layout=True,
-        # rasterized=True,
-    )
-
-    # Decode/Position
-    posterior.isel(time=time_slice_ind).plot(
-        x="time",
-        y="position",
-        robust=True,
-        ax=axes[0],
-        cmap="bone_r",
-        add_colorbar=False,
-        rasterized=True,
-    )
-    axes[0].scatter(
-        linear_position_info.iloc[time_slice_ind].index,
-        linear_position_info.iloc[time_slice_ind].linear_position,
-        color="magenta",
-        s=1,
-        clip_on=False,
-        rasterized=True,
-    )
-    axes[0].set_ylabel("Position [cm]")
-    axes[0].set_xlabel("")
-
-    plot_graph_as_1D(
-        track_graph,
-        ax=axes[0],
-        edge_order=edge_order,
-        edge_spacing=edge_spacing,
-        reward_well_nodes=reward_well_nodes,
-        other_axis_start=linear_position_info.iloc[time_slice_ind].index[-1]
-        + 0.3,
-        edge_colors=edge_colors,
-    )
-
-    # Ahead/Behind
-    traj_data = get_trajectory_data(
-        posterior=posterior.isel(time=time_slice_ind),
-        track_graph=track_graph,
-        decoder=classifier,
-        actual_projected_position=linear_position_info.iloc[time_slice_ind][
-            ["projected_x_position", "projected_y_position"]
-        ],
-        track_segment_id=linear_position_info.iloc[time_slice_ind][
-            "track_segment_id"
-        ],
-        actual_orientation=linear_position_info.iloc[time_slice_ind][
-            orientation_name
-        ],
-    )
-
-    ahead_behind_distance = get_ahead_behind_distance(track_graph, *traj_data)
-
-    axes[1].plot(
-        results.isel(time=time_slice_ind).time.values,
-        ahead_behind_distance,
-        color="black",
-    )
-    axes[1].axhline(0.0, color="magenta", linestyle="--")
-    axes[1].set_ylabel("Dist. [cm]")
-    axes[1].set_ylim((-30, 30))
-    axes[1].text(
-        results.isel(time=time_slice_ind).time.values[0],
-        30.0,
-        "Ahead",
-        color="grey",
-        fontsize=8,
-        ha="left",
-        va="top",
-    )
-    axes[1].text(
-        results.isel(time=time_slice_ind).time.values[0],
-        -30.0,
-        "Behind",
-        color="grey",
-        fontsize=8,
-        ha="left",
-        va="bottom",
-    )
-
-    # Speed
-    axes[2].fill_between(
-        linear_position_info.iloc[time_slice_ind].index,
-        linear_position_info.iloc[time_slice_ind][speed_name],
-        color="lightgrey",
-    )
-    axes[2].set_ylabel("Speed\n[cm/s]")
-
-    # Firing Rate
-    axes[3].fill_between(
-        posterior.isel(time=time_slice_ind).time.values,
-        multiunit_rate[time_slice_ind],
-        color="black",
-    )
-    axes[3].set_ylabel("Firing rate\n[spikes/s]")
-    duration = time_slice.stop - time_slice.start
-    axes[-1].set_xticks(
-        (time_slice.start, time_slice.stop),
-        (str(0.0), f"{duration:.1f}"),
-    )
-    axes[-1].set_xlabel("Time [s]")
-
-    sns.despine(offset=5)
-
-
-def create_1D_interactive_figurl(
-    linear_position_info,
-    posterior,
-    results,
-    multiunit_rate,
-    label="1D Decode",
-    view_height=800,
-    speed_name="speed",
-):
-    decode_view = create_1D_decode_view(
-        posterior=posterior,
-        linear_position=linear_position_info["linear_position"],
-    )
-    probability_view = vv.TimeseriesGraph()
-    COLOR_CYCLE = [
-        "#1f77b4",
-        "#ff7f0e",
-        "#2ca02c",
-        "#d62728",
-        "#9467bd",
-        "#8c564b",
-        "#e377c2",
-        "#7f7f7f",
-        "#bcbd22",
-        "#17becf",
-    ]
-
-    for state, color in zip(results.states.values, COLOR_CYCLE):
-        probability_view.add_line_series(
-            name=state,
-            t=np.asarray(results.time),
-            y=np.asarray(
-                results.acausal_state_probabilities.sel(states=state),
-                dtype=np.float32,
-            ),
-            color=color,
-            width=1,
-        )
-    speed_view = vv.TimeseriesGraph().add_line_series(
-        name="Speed [cm/s]",
-        t=np.asarray(linear_position_info.index),
-        y=np.asarray(linear_position_info[speed_name], dtype=np.float32),
-        color="black",
-        width=1,
-    )
-
-    multiunit_firing_rate_view = vv.TimeseriesGraph(
-        y_range=(0.0, 1000.0)
-    ).add_line_series(
-        name="Multiunit Rate [spikes/s]",
-        t=np.asarray(results.time.values),
-        y=np.asarray(multiunit_rate, dtype=np.float32).squeeze(),
-        color="black",
-        width=1,
-    )
-
-    vertical_panel1_content = [
-        vv.LayoutItem(decode_view, stretch=4, title="Decode"),
-        vv.LayoutItem(probability_view, stretch=1, title="State Prob."),
-        vv.LayoutItem(speed_view, stretch=1, title="Speed"),
-        vv.LayoutItem(multiunit_firing_rate_view, stretch=1, title="Multiunit"),
-    ]
-
-    view = vv.Box(
-        direction="horizontal",
-        show_titles=True,
-        height=view_height,
-        items=[
-            vv.LayoutItem(
-                vv.Box(
-                    direction="vertical",
-                    show_titles=True,
-                    items=vertical_panel1_content,
-                )
-            ),
-        ],
-    )
-
-    return view.url(label=label)
+    return fig, ax
